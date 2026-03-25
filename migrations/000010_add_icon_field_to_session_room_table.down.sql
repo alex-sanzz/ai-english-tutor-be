@@ -1,0 +1,1 @@
+ALTER TABLE session_rooms DROP COLUMN icon;

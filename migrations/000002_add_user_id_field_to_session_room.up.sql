@@ -1,0 +1,1 @@
+ALTER TABLE session_rooms ADD COLUMN user_id TEXT, ADD COLUMN last_active_at TIMESTAMPTZ NOT NULL DEFAULT NOW();

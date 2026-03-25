@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Standalone SSE Client Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f9; }
+        .container { max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1 { color: #333; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .event-log { 
+            margin-top: 20px; 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            min-height: 150px; 
+            max-height: 300px; 
+            overflow-y: scroll; 
+            background-color: #fcfcfc;
+            border-radius: 4px;
+        }
+        .event-message { 
+            padding: 5px 0; 
+            border-bottom: 1px dotted #ddd;
+            font-size: 0.9em;
+        }
+        code { 
+            background-color: #e8e8e8; 
+            padding: 2px 4px; 
+            border-radius: 3px; 
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Server-Sent Events Tester (Client Only)</h1>
+        <p>This page will attempt to connect to the SSE endpoint at <code>/events</code> on the current server's host.</p>
+        <p><strong>NOTE:</strong> You must have a separate SSE server running (e.g., the Go program provided previously) for this to work.</p>
+        <div class="event-log" id="log">
+            <strong>[Status]</strong> Attempting to connect...
+        </div>
+    </div>
+
+    <script>
+        const log = document.getElementById('log');
+        var sessionId = ""
+        function appendLog(message, type = 'data') {
+            const time = new Date().toLocaleTimeString();
+            const messageElement = document.createElement('div');
+            messageElement.className = 'event-message';
+            
+            if(type === 'session'){
+                messageElement.innerHTML = `<strong>[${time}]</strong> session id: ${message}`;
+            }else if (type === 'data') {
+                messageElement.innerHTML = `<strong>[${time}]</strong> Data: ${message}`;
+            } else {
+                 messageElement.innerHTML = `<strong>[${type}]</strong> ${message}`;
+            }
+            log.prepend(messageElement); // Prepend for newest-on-top
+        }
+
+        // Check if the browser supports SSE
+        if (!!window.EventSource) {
+            // Create a new EventSource connecting to the /events endpoint
+            // If the Go server is running on localhost:8080, this will connect to it.
+            const source = new EventSource('http://localhost:8080/api/sse?roomType=basic'); 
+
+            // --- 1. Event Listener for incoming messages (default 'message' event)
+            source.addEventListener('message', function(e) {
+                appendLog(e.data);
+            }, false);
+
+
+            // --- 2. Event Listener for a custom event named 'ping'
+            source.addEventListener('session', function(e) {
+                appendLog(e.data, 'session');
+                sessionId = e.data
+            }, false);
+
+            // --- 3. Event Listener for connection opening
+            source.addEventListener('open', function(e) {
+                appendLog("Connection to server opened successfully.", 'Status');
+            }, false);
+
+            // --- 4. Event Listener for connection errors
+            source.addEventListener('error', function(e) {
+                if (e.readyState === EventSource.CLOSED) {
+                    appendLog("Connection closed by server.", 'Error');
+                } else {
+                    appendLog("An error occurred during connection. Check server status.", 'Error');
+                }
+            }, false);
+            
+        } else {
+            appendLog("Your browser does not support Server-Sent Events.", 'Error');
+        }
+    </script>
+</body>
+</html>

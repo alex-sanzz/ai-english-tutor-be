@@ -1,0 +1,4 @@
+files/google-account-service.json
+files/config.yaml
+files/keys/private.pem
+run-go.bat

@@ -1,0 +1,1 @@
+ALTER TABLE session_rooms ADD COLUMN icon VARCHAR(255);

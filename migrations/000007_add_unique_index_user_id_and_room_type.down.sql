@@ -1,0 +1,2 @@
+ALTER TABLE session_rooms
+DROP CONSTRAINT IF EXISTS session_rooms_user_id_room_type_key;
