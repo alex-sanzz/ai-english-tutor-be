@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"ai-tutor-backend/internal/apperr"
 	"ai-tutor-backend/internal/log"
 	"ai-tutor-backend/internal/models"
 	"context"
@@ -98,9 +99,28 @@ func (c *ChatRepository) Create(ctx context.Context, chat *models.Chat) error {
 	_, err := c.db.Exec(ctx, query, chat.Message,  chat.SessionRoomId, chat.Role)
 	c.logger.Debug("Executed chat insert query", zap.Error(err))
 	if err != nil {
-		return fmt.Errorf("chat repository create function: %w", err) 
+		return apperr.Internal(fmt.Errorf("chat repository create function: %w", err)) 
 	}
 
 	return nil 
 
+}
+
+func (c *ChatRepository) DeleteAllMessages(ctx context.Context, sessionId string, ignoreFirstMessage bool) error {
+	var query string 
+
+	if ignoreFirstMessage {
+		query = "DELETE FROM chats WHERE session_room_id = $1 AND id != (SELECT id FROM chats WHERE session_room_id = $1 ORDER BY created_at ASC LIMIT 1)"
+	}else {
+		query = "DELETE FROM chats WHERE session_room_id = $1"
+	}
+	
+	_, err := c.db.Exec(ctx, query, sessionId)
+
+	c.logger.Debug("Executed chat insert query", zap.Error(err))
+	if err != nil {
+		return apperr.Internal(fmt.Errorf("chat repository delete all messages function: %w", err) )
+	}
+
+	return nil 
 }

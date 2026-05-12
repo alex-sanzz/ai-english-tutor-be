@@ -10,4 +10,5 @@ type SessionRoomService interface {
 	FindAll(context context.Context, userId, roomType string) ([]*models.SessionRoom, error)
 	FindById(ctx context.Context, id string) (*models.SessionRoom, error)
 	DeleteByID(ctx context.Context, id string) error 
+	DeleteAllMessages(ctx context.Context, sessionRoomId string, ignoreFirstMessage bool) error
 }

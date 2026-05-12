@@ -29,10 +29,14 @@ func (u ConversationQuestionUseCase) FindAll(ctx context.Context, sessionRoomId 
 	return u.service.FindAll(ctx, sessionRoomId, &limit, false)
 }
 
+func (u ConversationQuestionUseCase) FindAllAnsweredQuestion(ctx context.Context, sessionRoomId string) ([]*models.ConversationQuestion, error){
+	return u.service.FindAllAnsweredQuestion(ctx, sessionRoomId)
+}
+
 func (u ConversationQuestionUseCase) GenerateQuestion(ctx context.Context, sessionRoomId string) error{
 	return u.service.GenerateQuestion(ctx, sessionRoomId)
 }
 
-func (u ConversationQuestionUseCase) AnswerQuestion(ctx context.Context, id string, answer []byte) error{
-	return u.service.AnswerQuestion(ctx, id, answer)
+func (u ConversationQuestionUseCase) AnswerQuestion(ctx context.Context, id string, alternateVersion string, culturalContext string, paraphraseVersion string, answer []byte) error{
+	return u.service.AnswerQuestion(ctx, id, alternateVersion, culturalContext, paraphraseVersion, answer)
 }

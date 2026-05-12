@@ -13,6 +13,7 @@ import (
 	"ai-tutor-backend/internal/infrastructure/sse"
 	"ai-tutor-backend/internal/log"
 	"ai-tutor-backend/internal/middleware"
+	"ai-tutor-backend/internal/seed"
 
 	"ai-tutor-backend/internal/service"
 	"context"
@@ -72,9 +73,19 @@ func main() {
 
 	// geminiUseCase := usecase.NewGeminiUseCase(geminiClient)
 	pgPool, err := postgres.NewPool(context.Background(), dbDsn)
+
+	seeder := seed.NewSeeder(pgPool)
+
 	if err != nil {
 		logger.Fatal("failed init postgresql", zap.Error(err))
 	}
+
+	err = seeder.SeedRoomType(context.Background())
+
+	if err != nil {
+		logger.Fatal("failed seed room type", zap.Error(err))
+	}
+	
 	logger.Info("connected to postgresql successfully, host: " + cfg.Database.Host + ", port: " + fmt.Sprint(cfg.Database.Port))
 	chatRepository := postgres.NewChatRepository(pgPool, logger)
 	openAiInstance := openaigo.NewClient()
@@ -87,15 +98,15 @@ func main() {
 	assemblyAiClient := assemblyai.NewAssemblyAiClient(cfg.AssemblyAi, httpClient, logger)
 	transcriptionService := service.NewTranscribeService(assemblyAiClient)
 	openAiClient := openai.NewOpenAiClient(openAiInstance, cfg, logger)
-	chatService := service.NewChatService(openAiClient, chatRepository, logger)
+	chatService := service.NewChatService(openAiClient, chatRepository, logger, cfg.Ai)
 	openAiUseCase := usecase.NewOpenAiUseCase(chatService, logger)
 
 	sessionRoomRepository := postgres.NewSessionRoomRepository(pgPool, logger)
-	sessionRoomService := service.NewSessionRoomService(sessionRoomRepository)
+	sessionRoomService := service.NewSessionRoomService(sessionRoomRepository, chatRepository)
 	sessionRoomUseCase := usecase.NewSessionRoomUseCase(sessionRoomService)
 	sessionRoomHandler := handler.NewSessionRoomHandler(sessionRoomUseCase, logger)
 	transcribeUseCase := usecase.NewTranscribeUseCase(transcriptionService)
-	messageHandler := handler.NewMessageHandler(sseBroker, openAiUseCase, sessionRoomUseCase, transcribeUseCase, logger)
+	messageHandler := handler.NewMessageHandler(sseBroker, openAiUseCase, sessionRoomUseCase, transcribeUseCase, logger, &cfg.Ai)
 	
 	googleAuthClient := auth.NewGoogleAuthCLient(&cfg.GoogleAuth, logger)
 	userRepo := postgres.NewUserRepository(pgPool)

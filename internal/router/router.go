@@ -24,9 +24,11 @@ func SetupRoute(c *gin.Engine, messageHandler *handler.MessageHandler, authHandl
 	protectedGroup.GET("/rooms", sessionRoomHandler.FindAllTopics)
 	protectedGroup.POST("/rooms", sessionRoomHandler.CreateSessionRoom)
 	protectedGroup.DELETE("/rooms/:id", sessionRoomHandler.DeleteSessionRoom)
+	protectedGroup.DELETE("/rooms/:id/messages", sessionRoomHandler.DeleteAllMessages)
 
 	protectedGroup.GET("/questions", conversationQuestionHandler.FindAll)
 	protectedGroup.GET("/questions/:id", conversationQuestionHandler.FindById)
+	protectedGroup.GET("/questions/answered", conversationQuestionHandler.FindAllAnsweredQuestion)
 	protectedGroup.POST("/questions", conversationQuestionHandler.GenerateQuestion)
 	protectedGroup.POST("/questions/answer", conversationQuestionHandler.AnswerQuestion)
 

@@ -132,6 +132,50 @@ func (cq conversationQuestionRepository) Create(ctx context.Context, m *models.C
 	return id, err
 }
 
+func (cq conversationQuestionRepository) FindAllAnsweredQuestion(ctx context.Context, sessionRoomId string) ([]*models.ConversationQuestion, error) {
+	query := "SELECT * FROM conversation_questions WHERE session_room_id = $1 AND answer IS NOT NULL"
+
+	rows, err := cq.db.Query(ctx, query, sessionRoomId)
+
+	if err != nil {
+		return nil, apperr.Internal(fmt.Errorf("conversation question repository find all answered question error: %w", err))
+	}
+	defer rows.Close()
+
+	questions := []*models.ConversationQuestion{}
+
+	for rows.Next() {
+		var q models.ConversationQuestion
+		var answer sql.NullString
+		var reviewResult sql.NullString
+		var answeredAt sql.NullTime
+
+		if err := rows.Scan(&q.ID, &q.Question, &answer, &reviewResult, &q.SessionRoomId, &answeredAt, &q.CreatedAt); err != nil {
+			return nil, apperr.Internal(apperr.Internal(fmt.Errorf("conversation question repository find all answered question error: %w", err)))
+		}
+
+		if answer.Valid {
+			q.Answer = answer.String
+		}
+
+		if reviewResult.Valid {
+			q.ReviewResult = reviewResult.String
+		}
+
+		if answeredAt.Valid {
+			q.AnsweredAt = answeredAt.Time
+		}
+
+		questions = append(questions, &q)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, apperr.Internal(apperr.Internal(fmt.Errorf("conversation question repository find all answered question error: %w", err)))
+	}
+
+	return questions, nil
+}
+
 func (cq conversationQuestionRepository) CreateBatch(ctx context.Context, questions []*models.ConversationQuestion) error {
 
 	if len(questions) == 0 {

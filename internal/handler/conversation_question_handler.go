@@ -59,6 +59,24 @@ func (h *ConversationQuestionHandler) FindAll(c *gin.Context){
 
 }
 
+func (h *ConversationQuestionHandler) FindAllAnsweredQuestion(c *gin.Context){
+	sessionRoomId := c.Query("sessionRoomId")
+
+	if sessionRoomId == "" {
+		writeError(c, apperr.BadRequest("400", "session room id is required", fmt.Errorf("session room id is required")))
+	}
+
+	conversations, err := h.usecase.FindAllAnsweredQuestion(c.Request.Context(), sessionRoomId)
+
+	if err != nil {
+		h.log.Error("conversation question handler error", zap.Error(err))
+		writeError(c, err)
+	}
+
+	c.JSON(200, conversations)
+
+}
+
 func (h *ConversationQuestionHandler) GenerateQuestion(c *gin.Context){
 	sessionRoomId := c.Query("sessionRoomId")
 
@@ -82,6 +100,10 @@ func (h *ConversationQuestionHandler) AnswerQuestion(c *gin.Context){
 	if id == "" {
 		writeError(c, apperr.BadRequest("400", "ID is required", fmt.Errorf("id is required")))
 	}
+
+	alternateVersion := c.DefaultQuery("alternative-version", "0")
+	culturalContext := c.DefaultQuery("cultural-context", "")
+	paraphraseVersion := c.DefaultQuery("paraphrase-version", "false")
 
 	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
 		h.log.Error("parse multipart form error", zap.Error(err))
@@ -131,7 +153,7 @@ func (h *ConversationQuestionHandler) AnswerQuestion(c *gin.Context){
 		return
 	}
 
-	err = h.usecase.AnswerQuestion(c.Request.Context(), id, b)
+	err = h.usecase.AnswerQuestion(c.Request.Context(), id, alternateVersion, culturalContext, paraphraseVersion, b)
 
 	if err != nil {
 		h.log.Error("send sse audio message handler error", zap.Error(err))

@@ -10,11 +10,13 @@ import (
 
 type sessionRoomService struct {
 	sessionRoomRepo repository.SessionRoomRepository
+	chatRepo repository.ChatRepository
 }
 
-func NewSessionRoomService(sessionRoomRepo repository.SessionRoomRepository) *sessionRoomService {
+func NewSessionRoomService(sessionRoomRepo repository.SessionRoomRepository, chatRepo repository.ChatRepository) *sessionRoomService {
 	return &sessionRoomService{
 		sessionRoomRepo: sessionRoomRepo,
+		chatRepo: chatRepo,
 	}
 }
 
@@ -37,3 +39,8 @@ func (s *sessionRoomService) FindById(ctx context.Context, id string) (*models.S
 func (s *sessionRoomService) DeleteByID(ctx context.Context, id string) error {
 	return s.sessionRoomRepo.DeleteById(ctx, id)
 }
+
+func (s *sessionRoomService) DeleteAllMessages(ctx context.Context, sessionRoomId string, ignoreFirstMessage bool) error {
+	return s.chatRepo.DeleteAllMessages(ctx, sessionRoomId, ignoreFirstMessage)
+}
+

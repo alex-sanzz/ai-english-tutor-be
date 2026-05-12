@@ -7,6 +7,7 @@ import (
 	"ai-tutor-backend/internal/models"
 	"ai-tutor-backend/internal/usecase"
 	"fmt"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
@@ -91,4 +92,27 @@ func (h *SessionRoomHandler) DeleteSessionRoom(c *gin.Context){
 	c.JSON(204, nil)
 
 
+}
+
+func (h *SessionRoomHandler) DeleteAllMessages(c *gin.Context){
+	id := c.Param("id")
+	ignoreFirstMessage := c.Query("ignoreFirstMessage")
+
+	parsedBool, err := strconv.ParseBool(ignoreFirstMessage)
+
+	if err != nil {
+		h.logger.Error("session room handler delete all messages error", zap.Error(err))
+		writeError(c, err)
+		return 
+	}
+
+	err = h.sessionRoomUseCase.DeleteAllMessages(c.Request.Context(), id, parsedBool)
+
+	if err != nil {
+		h.logger.Error("session room handler delete all messages error", zap.Error(err))
+		writeError(c, err)
+		return 
+	}
+
+	c.JSON(204, nil)
 }

@@ -8,6 +8,7 @@ import (
 type ConversationQuestionService interface {
 	FindById(ctx context.Context, id string) (*models.ConversationQuestion, error)
 	FindAll(ctx context.Context, sessionRoomId string, limit *int, desc bool) ([]*models.ConversationQuestion, error)
+	FindAllAnsweredQuestion(ctx context.Context, sessionRoomId string) ([]*models.ConversationQuestion, error)
 	GenerateQuestion(ctx context.Context, sessionRoomId string) error
-	AnswerQuestion(ctx context.Context, id string, answer []byte) error
+	AnswerQuestion(ctx context.Context, id string, alternateVersion, culturalContext, paraphraseVersion string, answer []byte) error
 }

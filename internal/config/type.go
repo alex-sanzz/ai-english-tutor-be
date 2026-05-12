@@ -15,10 +15,19 @@ type ConfigApp struct {
 	AssemblyAi AssemblyAiConfig `mapstructure:"assemblyai"`
 }
 
+type AiCulturalContext struct {
+  UsEnglish string `mapstructure:"us_english"`
+  UkEnglish string `mapstructure:"uk_english"`
+  InternationalEnglish string `mapstructure:"international_english"`
+}
+
+
 type AiConfig struct {
 	GenerateQuestionPrompt string `mapstructure:"generate_question_prompt"`
 	EnglishEvaluationPrompt string `mapstructure:"english_evaluation_prompt"`
+	ScenarioBasedEnglishEvaluationPrompt string `mapstructure:"scenario_based_english_evaluation_prompt"`
 	OneSentenceEnglishEvaluation string `mapstructure:"one_sentence_english_evaluation"`
+  	AiCulturalContext AiCulturalContext `mapstructure:"cultural_context"`
 }
 
 type GoogleAuthConfig struct {

@@ -8,6 +8,7 @@ import (
 type ConversationQuestionRepository interface {
 	FindById(ctx context.Context, id string) (*models.ConversationQuestion, error)
 	FindAll(ctx context.Context, sessionRoomId string, limit *int, desc bool) ([]*models.ConversationQuestion, error)
+	FindAllAnsweredQuestion(ctx context.Context, sessionRoomId string) ([]*models.ConversationQuestion, error)
 	Create(ctx context.Context, m *models.ConversationQuestion) (string, error)
 	CreateBatch(ctx context.Context, questions []*models.ConversationQuestion) error
 	CheckIfThereIsAnUnansweredQuestion(ctx context.Context, sessionRoomId string) (bool, error)

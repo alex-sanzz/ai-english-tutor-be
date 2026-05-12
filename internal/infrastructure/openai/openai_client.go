@@ -27,18 +27,50 @@ func NewOpenAiClient(c openai.Client, config *config.ConfigApp, logger log.Logge
 	}
 }
 
-func (c *OpenAiClient) AskQuestion(ctx context.Context, question string) (string, error){
+func (c *OpenAiClient) AskQuestion(ctx context.Context, systemPrompt, question, answer string) (string, error){
+
+	openAiMessages := make([]openai.ChatCompletionMessageParamUnion, 0, 3)
+
+	if systemPrompt != "" {
+		openAiMessages = append(openAiMessages, openai.ChatCompletionMessageParamUnion{
+			// if the chat comes from user then you should use ofUser
+			// But if it comes from an AI, then you should use OfAssistant
+			OfSystem: &openai.ChatCompletionSystemMessageParam{
+				Content: openai.ChatCompletionSystemMessageParamContentUnion{
+					OfString: openai.String(systemPrompt),
+				},
+			},
+		})
+	}
+
+	if question != "" {
+
+		openAiMessages = append(openAiMessages, openai.ChatCompletionMessageParamUnion{
+			// if the chat comes from user then you should use ofUser
+			// But if it comes from an AI, then you should use OfAssistant
+			OfAssistant: &openai.ChatCompletionAssistantMessageParam{
+				Content: openai.ChatCompletionAssistantMessageParamContentUnion{
+					OfString: openai.String(question),
+				},
+			},
+		})
+	}
+
+	openAiMessages = append(openAiMessages, openai.ChatCompletionMessageParamUnion{
+		// if the chat comes from user then you should use ofUser
+		// But if it comes from an AI, then you should use OfAssistant
+		OfUser: &openai.ChatCompletionUserMessageParam{
+			Content: openai.ChatCompletionUserMessageParamContentUnion{
+				OfString: openai.String(answer),
+			},
+		},
+	})
+	
+	
+
 	resp, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
         Model: c.config.OpenAi.Model,
-        Messages: []openai.ChatCompletionMessageParamUnion{
-            {
-                OfUser: &openai.ChatCompletionUserMessageParam{
-                    Content: openai.ChatCompletionUserMessageParamContentUnion{
-                        OfString: openai.String(question),
-                    },
-                },
-            },
-        },
+        Messages: openAiMessages,
     })
 
 	if err != nil {
@@ -54,8 +86,8 @@ func (c *OpenAiClient) AskQuestion(ctx context.Context, question string) (string
 	
 }
 
-func (c *OpenAiClient) ChatStream(ctx context.Context, message []*models.Chat, onChunk func(string) error, onFinish func(string) error) error{
-	systemPrompt := c.config.Ai.EnglishEvaluationPrompt
+func (c *OpenAiClient) ChatStream(ctx context.Context, systemPrompt string, message []*models.Chat, onChunk func(string) error, onFinish func(string) error) error{
+	
 	
 	openAiMessages := make([]openai.ChatCompletionMessageParamUnion, 0, len(message))
 

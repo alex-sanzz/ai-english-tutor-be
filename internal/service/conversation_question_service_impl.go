@@ -9,6 +9,7 @@ import (
 	"ai-tutor-backend/internal/repository"
 	"context"
 	"fmt"
+	"strconv"
 
 	"strings"
 	"time"
@@ -41,7 +42,15 @@ func (s conversationQuestionService) FindAll(ctx context.Context, sessionRoomId 
 		return nil, err 
 	}
 
-	if len(questions) == 0 {
+	unansweredQuestionCounter := 0
+
+	for _, q := range questions {
+		if q.Answer == "" {
+			unansweredQuestionCounter += 1
+		}
+	}
+
+	if len(questions) == 0 || unansweredQuestionCounter == 0  {
 		err = s.GenerateQuestion(ctx, sessionRoomId)
 		if err != nil {
 			return nil, err 
@@ -73,7 +82,7 @@ func (s conversationQuestionService) GenerateQuestion(ctx context.Context, sessi
 		return nil 
 	}
 
-	answer, err := s.aiClient.AskQuestion(ctx, strings.ReplaceAll(s.cfg.GenerateQuestionPrompt, "{{topic}}", room.Topic))
+	answer, err := s.aiClient.AskQuestion(ctx, "", "", strings.ReplaceAll(s.cfg.GenerateQuestionPrompt, "{{topic}}", room.Topic))
 
 	if err != nil {
 		return fmt.Errorf("conversation question service impl ai client ask question error: %w", err)
@@ -106,11 +115,18 @@ func (s conversationQuestionService) GenerateQuestion(ctx context.Context, sessi
 
 }
 
-func (s conversationQuestionService) AnswerQuestion(ctx context.Context, id string, answer []byte) error{
+// alternateVersion := c.DefaultQuery("alternative-version", "0")
+// 	culturalContext := c.DefaultQuery("cultural-context", "")
+// 	paraphraseVersion := c.DefaultQuery("paraphrase-version", "false")
+
+func (s conversationQuestionService) AnswerQuestion(ctx context.Context, id string, alternateVersion, culturalContext, paraphraseVersion string, answer []byte) error{
+	
 	data, err := s.repo.FindById(ctx, id)
+
 	if err != nil {
 		return fmt.Errorf("onversation question service answer question error: %w", err)
 	}
+
 	uploadedUrl, err := s.transcriptionClient.UploadAudio(ctx, answer)
 
 	if err != nil {
@@ -126,8 +142,16 @@ func (s conversationQuestionService) AnswerQuestion(ctx context.Context, id stri
 	if transcribedText == ""{
 		return apperr.BadRequest("400", "can't interpret the message, please record the audio again or check the mic", fmt.Errorf("conversation question service answer question error: can't interpret the message"))
 	}
+	
+	replacer := strings.NewReplacer(
+		"{{alternative_version}}", strconv.FormatBool(alternateVersion == "0"), 
+		"{{cultural_context}}", culturalContext,
+		"{paraphrase_version}}", paraphraseVersion,
+		"{{alternative_count}}", alternateVersion,
+		"{{follow_up_question}}", "false",
+	)
 
-	reviewAnswer, err := s.aiClient.AskQuestion(ctx, strings.ReplaceAll(strings.ReplaceAll(s.cfg.OneSentenceEnglishEvaluation, "{{user_answer}}", transcribedText), "{{question}}", data.Question))
+	reviewAnswer, err := s.aiClient.AskQuestion(ctx, replacer.Replace(s.cfg.EnglishEvaluationPrompt), data.Question, transcribedText)
 	
 	if err != nil {
 		return err
@@ -141,4 +165,8 @@ func (s conversationQuestionService) AnswerQuestion(ctx context.Context, id stri
 
 	return nil
 
+}
+
+func (s conversationQuestionService) FindAllAnsweredQuestion(ctx context.Context, sessionRoomId string) ([]*models.ConversationQuestion, error) {
+	return s.repo.FindAllAnsweredQuestion(ctx, sessionRoomId)
 }

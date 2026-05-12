@@ -2,33 +2,36 @@ package service
 
 import (
 	"ai-tutor-backend/internal/apperr"
+	"ai-tutor-backend/internal/config"
 	"ai-tutor-backend/internal/infrastructure"
 	"ai-tutor-backend/internal/log"
 	"ai-tutor-backend/internal/models"
 	"ai-tutor-backend/internal/repository"
 	"context"
 	"fmt"
+	
 	"time"
 
 	"github.com/google/uuid"
-
 )
 
 type chatService struct {
 	aiChatClient infrastructure.AiChatClient
 	chatRepo repository.ChatRepository
 	logger log.Logger
+	aiCfg config.AiConfig
 }
 
-func NewChatService(client infrastructure.AiChatClient, chatRepo repository.ChatRepository, logger log.Logger) *chatService {
+func NewChatService(client infrastructure.AiChatClient, chatRepo repository.ChatRepository, logger log.Logger, aiCfg config.AiConfig) *chatService {
 	return &chatService{
 		aiChatClient: client,
 		chatRepo: chatRepo,
 		logger: logger,
+		aiCfg: aiCfg,
 	}
 }
 
-func (s *chatService) ChatStream(ctx context.Context, sessionId string, message string, onChunk func(id string, chunk string) error, onFinish func(string) error, saveRequestMessage bool) error {
+func (s *chatService) ChatStream(ctx context.Context, sessionId string, message string, systemPrompt string, onChunk func(id string, chunk string) error, onFinish func(string) error, saveRequestMessage bool) error {
 	gotMessageTime := time.Now()
 	messageId := uuid.New().String()
 	chats, err := s.chatRepo.FindRecentMessages(ctx, sessionId, 10)
@@ -50,8 +53,14 @@ func (s *chatService) ChatStream(ctx context.Context, sessionId string, message 
 		UpdatedAt: gotMessageTime,
 	})
 
+	// - alternative_version: {{alternative_version}}   // TRUE or FALSE
+    //                             - alternative_count: {{alternative_count}}       // number (e.g., 1, 2, 3)
+    //                             - cultural_context: {{cultural_context}}         // "UK", "US", "International", "Business"
+
+	
+	
 	// Implementation of streaming chat logic goes here
-	return s.aiChatClient.ChatStream(ctx, messages, func(chunk string) error {
+	return s.aiChatClient.ChatStream(ctx, systemPrompt, messages, func(chunk string) error {
 		// Handle each chunk of the streamed response
 		onChunk(messageId, chunk)
 		return nil

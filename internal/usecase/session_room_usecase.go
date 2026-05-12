@@ -31,3 +31,7 @@ func (u *SessionRoomUseCase) FindById(ctx context.Context, id string) (*models.S
 func (u *SessionRoomUseCase) DeleteById(ctx context.Context, id string) error{
 	return u.sessionRoomService.DeleteByID(ctx, id)
 }
+
+func (u *SessionRoomUseCase) DeleteAllMessages(ctx context.Context, sessionRoomId string, ignoreFirstMessage bool) error {
+	return u.sessionRoomService.DeleteAllMessages(ctx, sessionRoomId, ignoreFirstMessage)
+}

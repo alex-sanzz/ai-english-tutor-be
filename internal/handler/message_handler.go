@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"ai-tutor-backend/internal/config"
 	"ai-tutor-backend/internal/dto"
 	"ai-tutor-backend/internal/infrastructure/sse"
 	"ai-tutor-backend/internal/log"
@@ -13,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -25,15 +27,17 @@ type MessageHandler struct {
 	sessionRoomUseCase *usecase.SessionRoomUseCase
 	transcribeUseCase  *usecase.TranscribeUseCase
 	log                log.Logger
+	aiCfg			   *config.AiConfig
 }
 
-func NewMessageHandler(sseBroker *sse.SseBroker, aiChatUseCase *usecase.AiChatUseCase, sessionRoomUseCase *usecase.SessionRoomUseCase, transcribeUseCase *usecase.TranscribeUseCase, logger log.Logger) *MessageHandler {
+func NewMessageHandler(sseBroker *sse.SseBroker, aiChatUseCase *usecase.AiChatUseCase, sessionRoomUseCase *usecase.SessionRoomUseCase, transcribeUseCase *usecase.TranscribeUseCase, logger log.Logger, aiCfg *config.AiConfig) *MessageHandler {
 	return &MessageHandler{
 		sseBroker:          sseBroker,
 		aiChatUseCase:      aiChatUseCase,
 		sessionRoomUseCase: sessionRoomUseCase,
 		transcribeUseCase:  transcribeUseCase,
 		log:                logger,
+		aiCfg:              aiCfg,
 	}
 }
 
@@ -98,8 +102,8 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 			Message: "failed to initiate session",
 			Role: "",
 		})
+		return
 	}
-
 
 	messageChan := make(chan dto.SseChatMessageRequest)
 
@@ -174,7 +178,19 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 
 		}
 
-		err = h.askAi(c.Request.Context(), rw, flusher, sessionId, "the topic is " + room.Topic + ", give me first question, that can help the user practice english", false)
+		initialResponse := ""
+		systemPrompt := ""
+
+		switch room.RoomType {
+		case "basic":
+			initialResponse = "the topic is " + room.Topic + ", give me first question, that can help the user practice english. Just ask the question, don't say anything beside the question"
+			systemPrompt = "Just straight to the question"
+		case "roleplay":
+			initialResponse = "the scenario roleplay is " + room.Topic + ", give me first question, that stimulate the roleplay that i had given. Just ask the question, don't say anything beside the question"
+			systemPrompt = "Just straight to the question"
+		}
+
+		err = h.askAi(c.Request.Context(), rw, flusher, sessionId, initialResponse, systemPrompt, false)
 
 		if err != nil {
 			h.log.Error("message handler ask ai method error", zap.Error(err))
@@ -269,7 +285,18 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 				return 
 			}
 
-			err = h.askAi(c.Request.Context(), rw, flusher, sessionId, transcribedText, true)
+			prompt := ""
+
+			switch msg.Type {
+				case "basic":
+				prompt = h.aiCfg.EnglishEvaluationPrompt
+			case "scenario-based":
+				prompt = h.aiCfg.ScenarioBasedEnglishEvaluationPrompt
+			}
+
+			replacer := strings.NewReplacer("{{alternative_version}}", strconv.FormatBool(msg.AlternateVersion != "0"), "{{alternative_count}}", msg.AlternateVersion, "{{cultural_context}}", msg.CulturalContext, "{{paraphrase_version}}", msg.ParaphraseVersion, "{{follow_up_question}}", "true")
+
+			err = h.askAi(c.Request.Context(), rw, flusher, sessionId, transcribedText, replacer.Replace(prompt), true)
 
 			if err != nil {
 				h.log.Error("register sse handler error", zap.Error(err))
@@ -293,12 +320,13 @@ func (h *MessageHandler) sendErrorSse(rw http.ResponseWriter, flusher http.Flush
 		Message: errorMessage,
 		Role: "",
 	})
+
 }
 
-func (h *MessageHandler) askAi(ctx context.Context, rw http.ResponseWriter, flusher http.Flusher, sessionId string, question string, saveRequestMessage bool) error{
-	err := h.aiChatUseCase.ChatStream(ctx, sessionId, question, func(id string, chunk string) error {
-				
 
+func (h *MessageHandler) askAi(ctx context.Context, rw http.ResponseWriter, flusher http.Flusher, sessionId string, question string, systemPrompt string, saveRequestMessage bool) error{
+	err := h.aiChatUseCase.ChatStream(ctx, sessionId, question, systemPrompt, func(id string, chunk string) error {
+				
 		if err := h.sendSseEvent(rw, flusher, "data", dto.SseEvent{
 			MessageId: id,
 			Message:   chunk,
@@ -375,7 +403,11 @@ func (h *MessageHandler) sendSseEvent(w http.ResponseWriter, flusher http.Flushe
 func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
 	id := c.Param("id")
 
-
+	alternateVersion := c.DefaultQuery("alternative-version", "0")
+	culturalContext := c.DefaultQuery("cultural-context", "")
+	paraphraseVersion := c.DefaultQuery("paraphrase-version", "false")
+	aiType := c.DefaultQuery("type", "basic")
+	
 	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
 		h.log.Error("parse multipart form error", zap.Error(err))
 	} else if mf := c.Request.MultipartForm; mf != nil {
@@ -430,6 +462,10 @@ func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
 	chat := dto.SseChatMessageRequest{
 		Message: encoded,
 		UserId:  c.GetString("userId"),
+		AlternateVersion: alternateVersion,
+		CulturalContext: culturalContext,
+		ParaphraseVersion: paraphraseVersion,
+		Type: aiType,
 	}
 
 	if err := h.sseBroker.SendEvent(id, chat); err != nil {
