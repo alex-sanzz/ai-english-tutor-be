@@ -1,0 +1,47 @@
+name: Deploy go backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    # this tells git to use temporary ubuntu vm/container
+    runs-on: ubuntu-latest
+
+    steps:
+      # download repository code into github action runner (this is like a github clone)
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      # install Go 1.23 on temporary runner
+      - name: Setup go 
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+
+      - name: Build binary
+      # Build binary for linux executables
+      # with amd64 architecture
+      # the binary is named with 'app'
+        run: |
+          go mod tidy
+          GOOS=linux GOARCH=amd64 go build -o app
+      - name: Copy binary to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          source: app
+          target: /opt/aiconvbe
+      - name: Restart service
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          scripts: |
+            chmod +x /opt/aiconvbe/app 
+            sudo systemctl restart ai-conv-be 
