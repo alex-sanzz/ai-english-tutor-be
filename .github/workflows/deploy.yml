@@ -15,6 +15,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      - name: Create config file 
+        run: |
+
+          cat <<EOF > ./files/config.yaml
+          ${{ secrets.APP_CONFIG }}
+          EOF
+
+          cat <<EOF > ./files/google-account-service.json
+          ${{ secrets.GOOGLE_SERVICE }}
+          EOF
+          
+          cat <<EOF > ./files/keys/private.pem 
+          ${{ secrets.PRIVATE_KEY }}
+          EOF
+      
       # install Go 1.23 on temporary runner
       - name: Setup go 
         uses: actions/setup-go@v5
