@@ -17,13 +17,20 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_PRIVATE_KEY }}
+          # This basically tells that if there is no db name called ai tutor, then (using | meaning forward the value)
+          # grep means take the previous value and compare if the value is equal to 1
+          # if it's true then it won't execute next command (remember || means or)
+          
+          # /dev/null is linux blackhole, meaning you can throw anything to it
+          # &> means redirect the output to x
+          # 
           script: |
             if ! command -v psql &> /dev/null 
             then 
               sudo apt update
               sudo apt install -y postgresql postgresql-contrib
             fi
-
+            sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'default'"
             sudo -u postgres psql -tc "SELECT 1 FROM pg_database WHERE datname = 'ai_tutor'" | grep -q 1 || \
             sudo -u postgres createdb ai_tutor 
           
