@@ -25,7 +25,7 @@ jobs:
           cat <<EOF > ./files/google-account-service.json
           ${{ secrets.GOOGLE_SERVICE }}
           EOF
-          
+
           cat <<EOF > ./files/keys/private.pem 
           ${{ secrets.PRIVATE_KEY }}
           EOF
@@ -49,7 +49,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_PRIVATE_KEY }}
-          source: app
+          source: "app,files"
           target: /opt/aiconvbe
       - name: Restart service
         uses: appleboy/ssh-action@v1.0.3
@@ -57,6 +57,6 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_PRIVATE_KEY }}
-          scripts: |
+          script: |
             chmod +x /opt/aiconvbe/app 
             sudo systemctl restart ai-conv-be 
