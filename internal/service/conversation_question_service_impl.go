@@ -144,7 +144,7 @@ func (s conversationQuestionService) AnswerQuestion(ctx context.Context, id stri
 	}
 	
 	replacer := strings.NewReplacer(
-		"{{alternative_version}}", strconv.FormatBool(alternateVersion == "0"), 
+		"{{alternative_version}}", strconv.FormatBool(alternateVersion != "0"), 
 		"{{cultural_context}}", culturalContext,
 		"{paraphrase_version}}", paraphraseVersion,
 		"{{alternative_count}}", alternateVersion,
