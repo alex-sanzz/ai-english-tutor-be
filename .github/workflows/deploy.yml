@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: setup VPS
+      - name: setup DB to VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -74,6 +74,19 @@ jobs:
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           source: "app,files,migrations"
           target: /opt/aiconvbe
+      - name: Setup environment variable
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          script: |
+            cd /opt/aiconvbe 
+
+            cat > .env <<EOF 
+            OPENAI_API_KEY=${{ secrets.OPEN_AI_API_KEY }}
+            EOF
+            
       - name: Restart service
         uses: appleboy/ssh-action@v1.0.3
         with:
