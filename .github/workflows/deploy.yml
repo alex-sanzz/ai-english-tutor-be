@@ -74,7 +74,6 @@ jobs:
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           source: "app,files,migrations"
           target: /opt/aiconvbe
-          debug: true
       - name: Setup environment variable
         uses: appleboy/ssh-action@v1.0.3
         with:
