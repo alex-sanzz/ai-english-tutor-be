@@ -142,6 +142,7 @@ func main() {
 	router.SetupRoute(g, messageHandler, authHandler, sessionRoomHandler, conversationQuestionHandler, paymentHandler, jwtClient, logger)
 
 	go sseBroker.Listen()
+	
 
 	srv := &http.Server{
 		Addr:    ":8080",

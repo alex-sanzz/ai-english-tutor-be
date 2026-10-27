@@ -11,7 +11,7 @@ import (
 )
 
 type AndroidPublisherClient interface {
-    VerifySubscription(ctx context.Context, subscriptionId, purchaseToken string) (*publisher.SubscriptionPurchase, error)
+   VerifySubscription(ctx context.Context, subscriptionId, purchaseToken string) (*publisher.SubscriptionPurchaseV2, error)
     AcknowledgeSubscription(ctx context.Context, subscriptionId, purchaseToken string) error
 }
 
@@ -32,8 +32,8 @@ func New(ctx context.Context, credentialPath string) (AndroidPublisherClient, er
 	}, nil
 }
 
-func (c androidPublisherClient) VerifySubscription(ctx context.Context, subscriptionId, purchaseToken string) (*publisher.SubscriptionPurchase, error){
-	result, err := c.service.Purchases.Subscriptions.Get(c.cfg.PackageName, subscriptionId, purchaseToken).Do()
+func (c androidPublisherClient) VerifySubscription(ctx context.Context, subscriptionId, purchaseToken string) (*publisher.SubscriptionPurchaseV2, error){
+	result, err := c.service.Purchases.Subscriptionsv2.Get(c.cfg.PackageName, purchaseToken).Do()
 
 	if err != nil {
 		return nil, fmt.Errorf("android publisher client verify subscription error: %w", err)

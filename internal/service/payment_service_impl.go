@@ -47,19 +47,23 @@ func (p paymentService) AcknowledgeSubscription(ctx context.Context, userId, sub
 	if err != nil {
 		return apperr.Internal(fmt.Errorf("payment service impl verify subscription error: %w", err)) 
 	}
-	
-	if purchase.ExpiryTimeMillis < time.Now().UnixMilli() {
-		return apperr.BadRequest("400", "the subcription is already active", fmt.Errorf("payment service impl acknowledge subcription error: the subcription is already active"))
-	}
 
-	now := time.Now()
+	item := purchase.LineItems[0]
+
+	expiryAt, err := time.Parse(time.RFC3339Nano, item.ExpiryTime)
+
+	if err != nil {
+		return apperr.Internal(fmt.Errorf("payment service impl time parse error: %w", err))
+	}
 
 	err = p.subcriptionRepository.Create(ctx, models.Subcription{
 		UserId: userId,
 		PurchaseToken: purchaseToken,
-		PurchaseTime: now,
-		ExpiryAt: time.UnixMilli(purchase.ExpiryTimeMillis),
-		AutoRenewing: true,
+		PurchaseTime: time.Now(),
+		ProductId: item.ProductId,
+		BasePlanId: item.OfferDetails.BasePlanId,
+		ExpiryAt: expiryAt,
+		AutoRenewing: item.AutoRenewingPlan != nil && purchase.LineItems[0].AutoRenewingPlan.AutoRenewEnabled,
 	})
 
 	if err != nil {
