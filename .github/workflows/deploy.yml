@@ -62,7 +62,7 @@ jobs:
       - name: Build binary
       # Build binary for linux executables
       # with amd64 architecture
-      # the binary is named with 'app'
+      # the binary is named with 'app' from cmd folder
         run: |
           go mod tidy
           GOOS=linux GOARCH=amd64 go build -o app ./cmd
@@ -74,6 +74,7 @@ jobs:
           key: ${{ secrets.VPS_PRIVATE_KEY }}
           source: "app,files,migrations"
           target: /opt/aiconvbe
+          debug: true
       - name: Setup environment variable
         uses: appleboy/ssh-action@v1.0.3
         with:
