@@ -59,6 +59,7 @@ func main() {
 		logger.Fatal("failed to run migrations", zap.Error(err))
 	}
 
+	
 	g := gin.Default()
 	g.Use(middleware.RecoveryMiddleware(logger))
 	// ctx := context.Background()
@@ -142,7 +143,7 @@ func main() {
 	router.SetupRoute(g, messageHandler, authHandler, sessionRoomHandler, conversationQuestionHandler, paymentHandler, jwtClient, logger)
 
 	go sseBroker.Listen()
-	
+
 
 	srv := &http.Server{
 		Addr:    ":8080",
