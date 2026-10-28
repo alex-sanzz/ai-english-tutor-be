@@ -98,8 +98,6 @@ jobs:
               echo ${{vars.BACKEND_SERVICE_CONFIGURATION}} | sudo tee /etc/systemd/system/ai-conv-be.service 
               sudo systemctl daemon-reload
               sudo systemctl enable --now ai-conv-be
-            else 
-              echo "service is already exist"
             fi 
       - name: Restart service
         uses: appleboy/ssh-action@v1.0.3
