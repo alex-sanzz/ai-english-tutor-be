@@ -62,8 +62,10 @@ func main() {
 	
 	g := gin.Default()
 	g.Use(middleware.RecoveryMiddleware(logger))
+
 	// ctx := context.Background()
 	sseBroker := sse.NewSseBroker(logger)
+
 	// aiClient, err := genai.NewClient(ctx, nil)
 
 	// if err != nil {
@@ -164,6 +166,7 @@ func main() {
 	}()
 
 	quit := make(chan os.Signal, 1)
+	
 	// When SIGTERM signal is received, for example: when you pressing ctrl + c
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
