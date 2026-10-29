@@ -64,14 +64,14 @@ func (a authService) GoogleLogin(ctx context.Context, googleIdToken string, nonc
 func (a authService) RefreshToken(ctx context.Context, refreshToken string) (string, string, error){
 	refreshTokenModel, err := a.refreshTokenRepository.FindByToken(ctx, refreshToken)
 
-	if err != nil {
-		return "", "", apperr.Internal(fmt.Errorf("auth service refresh token error: %w", err))
-	}
-
 	if refreshTokenModel == nil {
 		return "", "", apperr.BadRequest("unauthorized", "unauthorized", fmt.Errorf("auth service refresh token error: requested refresh token not found"))
 	}
 
+	if err != nil {
+		return "", "", apperr.Internal(fmt.Errorf("auth service refresh token error: %w", err))
+	}
+	
 	err = a.refreshTokenRepository.RevokeByToken(ctx, refreshToken)
 
 	if err != nil {

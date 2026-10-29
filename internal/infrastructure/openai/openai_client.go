@@ -8,9 +8,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/openai/openai-go/v3"
-
 )
 
 type OpenAiClient struct {
@@ -25,6 +25,41 @@ func NewOpenAiClient(c openai.Client, config *config.ConfigApp, logger log.Logge
 		config: config,
 		logger: logger,
 	}
+}
+
+func (c *OpenAiClient) StreamTTS(ctx context.Context, text string) error{
+	response, err := c.client.Audio.Speech.New(context.Background(), openai.AudioSpeechNewParams{
+		Model: openai.SpeechModelGPT4oMiniTTS,
+		Voice: openai.AudioSpeechNewParamsVoiceAlloy,
+		Input: text,
+		Instructions: openai.String("Speak in a slow tempo."),
+		ResponseFormat: openai.AudioSpeechNewParamsResponseFormatPCM,
+	})
+
+	if err != nil {
+		return apperr.Internal(fmt.Errorf("openai client stream tts error: %w", err))
+	}
+
+	defer response.Body.Close()
+
+	buffer := make([]byte, 4096)
+
+	for {
+		n, err := response.Body.Read(buffer)
+
+		if n > 0 {
+			
+		} 
+
+		if err == io.EOF {
+			break 
+		}
+
+		if err != nil {
+			return apperr.Internal(fmt.Errorf("openai client stream tts error: %w", err))
+		}
+	}
+
 }
 
 func (c *OpenAiClient) AskQuestion(ctx context.Context, systemPrompt, question, answer string) (string, error){
@@ -175,3 +210,4 @@ func (c *OpenAiClient) ChatStream(ctx context.Context, systemPrompt string, mess
 
 	
 }
+
