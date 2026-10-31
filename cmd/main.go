@@ -104,6 +104,10 @@ func main() {
 	chatService := service.NewChatService(openAiClient, chatRepository, logger, cfg.Ai)
 	openAiUseCase := usecase.NewOpenAiUseCase(chatService, logger)
 
+	ttsService := service.NewTtsService(openAiClient, logger)
+	ttsUsecase := usecase.NewTTSUsecase(ttsService, logger)
+	ttsHandler := handler.NewTtsHandler(*ttsUsecase, logger)
+
 	sessionRoomRepository := postgres.NewSessionRoomRepository(pgPool, logger)
 	sessionRoomService := service.NewSessionRoomService(sessionRoomRepository, chatRepository)
 	sessionRoomUseCase := usecase.NewSessionRoomUseCase(sessionRoomService)
@@ -142,7 +146,7 @@ func main() {
 	paymentUseCase := usecase.NewPaymentUseCase(paymentSvc)
 	paymentHandler := handler.NewPaymentHandler(*paymentUseCase)
 
-	router.SetupRoute(g, messageHandler, authHandler, sessionRoomHandler, conversationQuestionHandler, paymentHandler, jwtClient, logger)
+	router.SetupRoute(g, messageHandler, authHandler, sessionRoomHandler, conversationQuestionHandler, paymentHandler, ttsHandler, jwtClient, logger)
 
 	go sseBroker.Listen()
 

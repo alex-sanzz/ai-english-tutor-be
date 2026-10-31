@@ -11,7 +11,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoute(c *gin.Engine, messageHandler *handler.MessageHandler, authHandler *handler.AuthHandler, sessionRoomHandler *handler.SessionRoomHandler, conversationQuestionHandler *handler.ConversationQuestionHandler, paymentHandler *handler.PaymentHandler, jwtClient jwt.JwtClient, logger log.Logger){
+func SetupRoute(c *gin.Engine, messageHandler *handler.MessageHandler, authHandler *handler.AuthHandler, 
+	sessionRoomHandler *handler.SessionRoomHandler, conversationQuestionHandler *handler.ConversationQuestionHandler, 
+	paymentHandler *handler.PaymentHandler, ttsHandler *handler.TtsHandler, jwtClient jwt.JwtClient, logger log.Logger){
 
 	apiGroup := c.Group("/api")
 
@@ -33,6 +35,8 @@ func SetupRoute(c *gin.Engine, messageHandler *handler.MessageHandler, authHandl
 	protectedGroup.POST("/questions/answer", conversationQuestionHandler.AnswerQuestion)
 
 	protectedGroup.POST("/payment/subscription/ack", paymentHandler.AcknowledgeSubcription)
+
+	protectedGroup.POST("/tts/transform", ttsHandler.Generate)
 
 	sseGroup := protectedGroup.Group("/sse")
 	sseGroup.GET("", messageHandler.RegisterSse)
