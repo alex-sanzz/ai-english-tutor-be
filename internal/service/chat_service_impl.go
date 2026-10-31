@@ -61,9 +61,12 @@ func (s *chatService) ChatStream(ctx context.Context, sessionId string, message 
 	
 	// Implementation of streaming chat logic goes here
 	return s.aiChatClient.ChatStream(ctx, systemPrompt, messages, func(chunk string) error {
+		
 		// Handle each chunk of the streamed response
 		onChunk(messageId, chunk)
+		
 		return nil
+
 	}, func(fullSentences string) error {
 
 		if(saveRequestMessage){
@@ -91,11 +94,10 @@ func (s *chatService) ChatStream(ctx context.Context, sessionId string, message 
 			UpdatedAt: time.Now(),
 		})
 
-		
-
 		if err != nil {
 			return apperr.Internal(fmt.Errorf("chat service chat stream on finish: %w", err))
 		}
+
 		return onFinish(fullSentences)
 	})
 }

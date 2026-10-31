@@ -27,7 +27,7 @@ func NewOpenAiClient(c openai.Client, config *config.ConfigApp, logger log.Logge
 	}
 }
 
-func (c *OpenAiClient) StreamTTS(ctx context.Context, text string) error{
+func (c *OpenAiClient) StreamTTS(ctx context.Context, text string) (io.ReadCloser, error){
 	response, err := c.client.Audio.Speech.New(context.Background(), openai.AudioSpeechNewParams{
 		Model: openai.SpeechModelGPT4oMiniTTS,
 		Voice: openai.AudioSpeechNewParamsVoiceAlloy,
@@ -37,28 +37,12 @@ func (c *OpenAiClient) StreamTTS(ctx context.Context, text string) error{
 	})
 
 	if err != nil {
-		return apperr.Internal(fmt.Errorf("openai client stream tts error: %w", err))
+		return nil, apperr.Internal(fmt.Errorf("openai client stream tts error: %w", err))
 	}
 
-	defer response.Body.Close()
+	return response.Body, nil 
 
-	buffer := make([]byte, 4096)
-
-	for {
-		n, err := response.Body.Read(buffer)
-
-		if n > 0 {
-			
-		} 
-
-		if err == io.EOF {
-			break 
-		}
-
-		if err != nil {
-			return apperr.Internal(fmt.Errorf("openai client stream tts error: %w", err))
-		}
-	}
+	
 
 }
 
