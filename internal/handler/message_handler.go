@@ -296,6 +296,8 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 			}
 
 			replacer := strings.NewReplacer("{{topic}}", room.Topic, "{{main_objective}}", mainObjective, "{{alternative_version}}", strconv.FormatBool(msg.AlternateVersion != "0"), "{{alternative_count}}", msg.AlternateVersion, "{{cultural_context}}", msg.CulturalContext, "{{paraphrase_version}}", msg.ParaphraseVersion, "{{follow_up_question}}", "true")
+			
+			h.log.Info("current prompt", zap.String("prompt", replacer.Replace(prompt)))
 
 			err = h.askAi(c.Request.Context(), rw, flusher, sessionId, transcribedText, replacer.Replace(prompt), true)
 
