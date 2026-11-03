@@ -27,7 +27,7 @@ type MessageHandler struct {
 	sessionRoomUseCase *usecase.SessionRoomUseCase
 	transcribeUseCase  *usecase.TranscribeUseCase
 	log                log.Logger
-	aiCfg			   *config.AiConfig
+	aiCfg              *config.AiConfig
 }
 
 func NewMessageHandler(sseBroker *sse.SseBroker, aiChatUseCase *usecase.AiChatUseCase, sessionRoomUseCase *usecase.SessionRoomUseCase, transcribeUseCase *usecase.TranscribeUseCase, logger log.Logger, aiCfg *config.AiConfig) *MessageHandler {
@@ -87,20 +87,19 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 	flusher, ok := rw.(http.Flusher)
 
 	if !ok {
-	
-        h.log.Error("register sse handler error", zap.Error(fmt.Errorf("cannot flush http")))
-        return
-    
+
+		h.log.Error("register sse handler error", zap.Error(fmt.Errorf("cannot flush http")))
+		return
+
 	}
 
 	sessionId, exist := c.GetQuery("sessionId")
-	
 
 	if !exist {
 		h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 			MessageId: time.Now().String(),
-			Message: "failed to initiate session",
-			Role: "",
+			Message:   "failed to initiate session",
+			Role:      "",
 		})
 		return
 	}
@@ -125,10 +124,10 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 	}()
 
 	err := h.sseBroker.RegisterClient(sessionId, messageChan)
-	
+
 	if err != nil {
 		h.log.Error("register sse error: can't register sse client", zap.Error(err))
-		return 
+		return
 	}
 
 	h.log.Info("client is registered successfully")
@@ -137,19 +136,19 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 
 	err = h.sendSseEvent(rw, flusher, "session", dto.SseEvent{
 		MessageId: "",
-		Message: sessionId,
-		Role: "",
+		Message:   sessionId,
+		Role:      "",
 	})
 
 	if err != nil {
 		h.log.Error("register sse error: can't send sse event", zap.Error(err))
-		return 
+		return
 	}
 
 	h.log.Info("session event is sent successfully")
 
 	// Heartbeat ticker to keep connection alive
-	heartbeatTicker := time.NewTicker(30 *time.Second)
+	heartbeatTicker := time.NewTicker(30 * time.Second)
 	defer heartbeatTicker.Stop()
 
 	chats, err := h.aiChatUseCase.FindRecentMessages(c.Request.Context(), sessionId, 1)
@@ -158,23 +157,23 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 		h.log.Error("ai chat usecase find recent message error", zap.Error(err))
 		h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 			MessageId: time.Now().String(),
-			Message: "there is something wrong in the system",
-			Role: "",
+			Message:   "there is something wrong in the system",
+			Role:      "",
 		})
-		return 
+		return
 	}
+	room, err := h.sessionRoomUseCase.FindById(c.Request.Context(), sessionId)
 
 	if len(chats) == 0 {
-		room, err := h.sessionRoomUseCase.FindById(c.Request.Context(), sessionId)
 
 		if err != nil {
 			h.log.Error("session room usecase find by id error", zap.Error(err))
 			h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 				MessageId: time.Now().String(),
-				Message: "there is something wrong in the system",
-				Role: "",
+				Message:   "there is something wrong in the system",
+				Role:      "",
 			})
-			return 
+			return
 
 		}
 
@@ -198,7 +197,6 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 		}
 	}
 
-	
 	for {
 		select {
 		case msg := <-messageChan:
@@ -214,8 +212,8 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 				h.log.Error("register sse handler error", zap.Error(err))
 				h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 					MessageId: time.Now().String(),
-					Message: "failed to decode voice",
-					Role: "",
+					Message:   "failed to decode voice",
+					Role:      "",
 				})
 				return
 			}
@@ -224,29 +222,29 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 				h.log.Warn("received empty audio data")
 				h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 					MessageId: time.Now().String(),
-					Message: "audio data is empty",
-					Role: "",
+					Message:   "audio data is empty",
+					Role:      "",
 				})
 				return
 			}
-			
+
 			// This is used for debugging purposes
 			timestamp := time.Now().Format("20060102_150405")
-            filename := fmt.Sprintf("audio_%s.webm", timestamp)
-            if err := os.WriteFile(filename, audioBytes, 0644); err != nil {
-                h.log.Error("failed to save audio file", zap.Error(err), zap.String("filename", filename))
-            } else {
-                h.log.Info("audio file saved", zap.String("filename", filename), zap.Int("size", len(audioBytes)))
-            }
+			filename := fmt.Sprintf("audio_%s.webm", timestamp)
+			if err := os.WriteFile(filename, audioBytes, 0644); err != nil {
+				h.log.Error("failed to save audio file", zap.Error(err), zap.String("filename", filename))
+			} else {
+				h.log.Info("audio file saved", zap.String("filename", filename), zap.Int("size", len(audioBytes)))
+			}
 
 			uploadedFileUrl, err := h.transcribeUseCase.UploadAudioFile(c.Request.Context(), audioBytes)
-			
+
 			if err != nil {
 				h.log.Error("register sse handler error on uploading audio file", zap.Error(err))
 				h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 					MessageId: time.Now().String(),
-					Message: "failed to transcribe voice",
-					Role: "",
+					Message:   "failed to transcribe voice",
+					Role:      "",
 				})
 				return
 			}
@@ -257,8 +255,8 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 				h.log.Error("register sse handler error on transcribing audio file", zap.Error(err))
 				h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 					MessageId: time.Now().String(),
-					Message: "failed to transcribe voice",
-					Role: "",
+					Message:   "failed to transcribe voice",
+					Role:      "",
 				})
 				return
 			}
@@ -267,34 +265,37 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 				h.log.Error("register sse handler error on transcribing audio file: transcribed text is empty")
 				h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 					MessageId: time.Now().String(),
-					Message: "transcribed text is empty",
-					Role: "",
+					Message:   "transcribed text is empty",
+					Role:      "",
 				})
 				return
 			}
 
 			h.log.Debug("transcribed text :", zap.String("text", transcribedText))
 
-
 			if err := h.sendSseEvent(rw, flusher, "data", dto.SseEvent{
 				MessageId: time.Now().String(),
 				Message:   transcribedText,
-				Role:    "user",
+				Role:      "user",
 			}); err != nil {
 				h.log.Error("register sse handler error", zap.Error(err))
-				return 
+				return
 			}
 
-			prompt := ""
+			prompt := h.aiCfg.EnglishEvaluationPrompt
+
+			mainObjective := ""
 
 			switch msg.Type {
-				case "basic":
-				prompt = h.aiCfg.EnglishEvaluationPrompt
+			case "basic":
+				mainObjective = h.aiCfg.BasicConversationMainObjective
 			case "scenario-based":
-				prompt = h.aiCfg.ScenarioBasedEnglishEvaluationPrompt
+				mainObjective = h.aiCfg.RolePlayModeMainObjective
+				mainRule := h.aiCfg.ScenarioModeMainRule
+				prompt = strings.ReplaceAll(prompt, "{{main_rule}}", mainRule)
 			}
 
-			replacer := strings.NewReplacer("{{alternative_version}}", strconv.FormatBool(msg.AlternateVersion != "0"), "{{alternative_count}}", msg.AlternateVersion, "{{cultural_context}}", msg.CulturalContext, "{{paraphrase_version}}", msg.ParaphraseVersion, "{{follow_up_question}}", "true")
+			replacer := strings.NewReplacer("{{topic}}", room.Topic, "{{main_objective}}", mainObjective, "{{alternative_version}}", strconv.FormatBool(msg.AlternateVersion != "0"), "{{alternative_count}}", msg.AlternateVersion, "{{cultural_context}}", msg.CulturalContext, "{{paraphrase_version}}", msg.ParaphraseVersion, "{{follow_up_question}}", "true")
 
 			err = h.askAi(c.Request.Context(), rw, flusher, sessionId, transcribedText, replacer.Replace(prompt), true)
 
@@ -312,39 +313,37 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 	}
 }
 
-func (h *MessageHandler) sendErrorSse(rw http.ResponseWriter, flusher http.Flusher, errorMessage string, err error){
+func (h *MessageHandler) sendErrorSse(rw http.ResponseWriter, flusher http.Flusher, errorMessage string, err error) {
 	h.log.Error("register sse handler error", zap.Error(err))
-	
+
 	h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 		MessageId: time.Now().String(),
-		Message: errorMessage,
-		Role: "",
+		Message:   errorMessage,
+		Role:      "",
 	})
 
 }
 
-
-func (h *MessageHandler) askAi(ctx context.Context, rw http.ResponseWriter, flusher http.Flusher, sessionId string, question string, systemPrompt string, saveRequestMessage bool) error{
+func (h *MessageHandler) askAi(ctx context.Context, rw http.ResponseWriter, flusher http.Flusher, sessionId string, question string, systemPrompt string, saveRequestMessage bool) error {
 	err := h.aiChatUseCase.ChatStream(ctx, sessionId, question, systemPrompt, func(id string, chunk string) error {
-				
+
 		if err := h.sendSseEvent(rw, flusher, "data", dto.SseEvent{
 			MessageId: id,
 			Message:   chunk,
-			Role:    "assistant",
+			Role:      "assistant",
 		}); err != nil {
-			
+
 			h.sendErrorSse(rw, flusher, "there is something wrong", err)
 			return err
 		}
 
 		return nil
 	}, func(fullSentences string) error {
-		
 
 		if err := h.sendSseEvent(rw, flusher, "finished", dto.SseEvent{
 			MessageId: "",
 			Message:   "",
-			Role:    "",
+			Role:      "",
 		}); err != nil {
 			h.sendErrorSse(rw, flusher, "there is something wrong", err)
 			return err
@@ -381,7 +380,7 @@ func (h *MessageHandler) SendMessage(c *gin.Context) {
 	}
 }
 
-func (h *MessageHandler) sendSseEvent(w http.ResponseWriter, flusher http.Flusher, eventType string, data dto.SseEvent) error{
+func (h *MessageHandler) sendSseEvent(w http.ResponseWriter, flusher http.Flusher, eventType string, data dto.SseEvent) error {
 	jsonBytes, err := json.Marshal(data)
 
 	if err != nil {
@@ -397,7 +396,7 @@ func (h *MessageHandler) sendSseEvent(w http.ResponseWriter, flusher http.Flushe
 	flusher.Flush()
 
 	return nil
-	
+
 }
 
 func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
@@ -407,7 +406,7 @@ func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
 	culturalContext := c.DefaultQuery("cultural-context", "")
 	paraphraseVersion := c.DefaultQuery("paraphrase-version", "false")
 	aiType := c.DefaultQuery("type", "basic")
-	
+
 	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
 		h.log.Error("parse multipart form error", zap.Error(err))
 	} else if mf := c.Request.MultipartForm; mf != nil {
@@ -456,16 +455,15 @@ func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
 		return
 	}
 
-
 	encoded := base64.StdEncoding.EncodeToString(b)
 
 	chat := dto.SseChatMessageRequest{
-		Message: encoded,
-		UserId:  c.GetString("userId"),
-		AlternateVersion: alternateVersion,
-		CulturalContext: culturalContext,
+		Message:           encoded,
+		UserId:            c.GetString("userId"),
+		AlternateVersion:  alternateVersion,
+		CulturalContext:   culturalContext,
 		ParaphraseVersion: paraphraseVersion,
-		Type: aiType,
+		Type:              aiType,
 	}
 
 	if err := h.sseBroker.SendEvent(id, chat); err != nil {
