@@ -284,16 +284,17 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 
 			prompt := h.aiCfg.EnglishEvaluationPrompt
 
-			mainObjective := ""
+			mainObjective := h.aiCfg.BasicConversationMainObjective
+			mainRule := strings.ReplaceAll(h.aiCfg.BasicConversationMainRule, "{{topic}}", room.Topic)
 
-			switch msg.Type {
-			case "basic":
-				mainObjective = h.aiCfg.BasicConversationMainObjective
-			case "scenario-based":
+			switch room.RoomType {
+			case "roleplay", "scenario-based":
 				mainObjective = h.aiCfg.RolePlayModeMainObjective
-				mainRule := h.aiCfg.ScenarioModeMainRule
-				prompt = strings.ReplaceAll(prompt, "{{main_rule}}", mainRule)
+				mainRule = strings.ReplaceAll(h.aiCfg.ScenarioModeMainRule, "{{topic}}", room.Topic)
+				mainRule = strings.ReplaceAll(mainRule, "{{scenario}}", room.Topic)
 			}
+
+			prompt = strings.ReplaceAll(prompt, "{{main_rule}}", mainRule)
 
 			replacer := strings.NewReplacer("{{topic}}", room.Topic, "{{main_objective}}", mainObjective, "{{alternative_version}}", strconv.FormatBool(msg.AlternateVersion != "0"), "{{alternative_count}}", msg.AlternateVersion, "{{cultural_context}}", msg.CulturalContext, "{{paraphrase_version}}", msg.ParaphraseVersion, "{{follow_up_question}}", "true")
 			

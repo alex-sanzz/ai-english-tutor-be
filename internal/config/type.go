@@ -23,6 +23,7 @@ type AiCulturalContext struct {
 
 type AiConfig struct {
 	BasicConversationMainObjective string            `mapstructure:"basic_conversation_main_objective"`
+	BasicConversationMainRule      string            `mapstructure:"basic_conversation_main_rule"`
 	RolePlayModeMainObjective      string            `mapstructure:"roleplay_mode_main_objection"`
 	GenerateQuestionPrompt         string            `mapstructure:"generate_question_prompt"`
 	EnglishEvaluationPrompt        string            `mapstructure:"english_evaluation_prompt"`
