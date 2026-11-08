@@ -7,5 +7,5 @@ import (
 
 type AiChatClient interface {
 	ChatStream(ctx context.Context, systemPrompt string, messages []*models.Chat, onChunk func(string) error, onFinish func(string) error) error
-	AskQuestion(ctx context.Context, systemPrompt, question, answer string) (string, error)
+	AskQuestion(ctx context.Context, systemPrompt, userResponse, aiResponse string) (string, error)
 }

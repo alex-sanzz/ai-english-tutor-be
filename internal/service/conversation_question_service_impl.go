@@ -82,7 +82,7 @@ func (s conversationQuestionService) GenerateQuestion(ctx context.Context, sessi
 		return nil 
 	}
 
-	answer, err := s.aiClient.AskQuestion(ctx, "", "", strings.ReplaceAll(s.cfg.GenerateQuestionPrompt, "{{topic}}", room.Topic))
+	answer, err := s.aiClient.AskQuestion(ctx, "", strings.ReplaceAll(s.cfg.GenerateQuestionPrompt, "{{topic}}", room.Topic), "")
 
 	if err != nil {
 		return fmt.Errorf("conversation question service impl ai client ask question error: %w", err)
@@ -151,7 +151,7 @@ func (s conversationQuestionService) AnswerQuestion(ctx context.Context, id stri
 		"{{follow_up_question}}", "false",
 	)
 
-	reviewAnswer, err := s.aiClient.AskQuestion(ctx, replacer.Replace(s.cfg.EnglishEvaluationPrompt), data.Question, transcribedText)
+	reviewAnswer, err := s.aiClient.AskQuestion(ctx, replacer.Replace(s.cfg.EnglishEvaluationPrompt), transcribedText, data.Question)
 	
 	if err != nil {
 		return err

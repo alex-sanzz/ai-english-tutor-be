@@ -46,7 +46,7 @@ func (c *OpenAiClient) StreamTTS(ctx context.Context, text string) (io.ReadClose
 
 }
 
-func (c *OpenAiClient) AskQuestion(ctx context.Context, systemPrompt, question, answer string) (string, error){
+func (c *OpenAiClient) AskQuestion(ctx context.Context, systemPrompt, userResponse, aiResponse string) (string, error){
 
 	openAiMessages := make([]openai.ChatCompletionMessageParamUnion, 0, 3)
 
@@ -62,28 +62,36 @@ func (c *OpenAiClient) AskQuestion(ctx context.Context, systemPrompt, question, 
 		})
 	}
 
-	if question != "" {
-
+	if aiResponse != "" {
 		openAiMessages = append(openAiMessages, openai.ChatCompletionMessageParamUnion{
 			// if the chat comes from user then you should use ofUser
 			// But if it comes from an AI, then you should use OfAssistant
 			OfAssistant: &openai.ChatCompletionAssistantMessageParam{
 				Content: openai.ChatCompletionAssistantMessageParamContentUnion{
-					OfString: openai.String(question),
+					OfString: openai.String(aiResponse),
 				},
 			},
 		})
 	}
 
-	openAiMessages = append(openAiMessages, openai.ChatCompletionMessageParamUnion{
-		// if the chat comes from user then you should use ofUser
-		// But if it comes from an AI, then you should use OfAssistant
-		OfUser: &openai.ChatCompletionUserMessageParam{
-			Content: openai.ChatCompletionUserMessageParamContentUnion{
-				OfString: openai.String(answer),
+	if userResponse != "" {
+
+		openAiMessages = append(openAiMessages, openai.ChatCompletionMessageParamUnion{
+			// if the chat comes from user then you should use ofUser
+			// But if it comes from an AI, then you should use OfAssistant
+			OfUser: &openai.ChatCompletionUserMessageParam{
+				Content: openai.ChatCompletionUserMessageParamContentUnion{
+					OfString: openai.String(userResponse),
+				},
 			},
-		},
-	})
+		})
+
+		
+	}
+
+	
+
+	
 	
 	
 
@@ -152,7 +160,7 @@ func (c *OpenAiClient) ChatStream(ctx context.Context, systemPrompt string, mess
 		// Union means the chat can have different kind
 		// For example: it can be from human, ai, etc
 		Messages: openAiMessages,
-		
+		MaxCompletionTokens: openai.Int(c.config.OpenAi.MaxTokens),
 	})
 
 	if stream == nil {

@@ -48,7 +48,7 @@ type OpenAiConfig struct {
 	ApiKey      string  `mapstructure:"api_key"`
 	Model       string  `mapstructure:"model"`
 	Temperature float32 `mapstructure:"temperature"`
-	MaxTokens   int     `mapstructure:"max_tokens"`
+	MaxTokens   int64     `mapstructure:"max_tokens"`
 }
 
 type AssemblyAiConfig struct {
