@@ -6,6 +6,7 @@ import (
 	"ai-tutor-backend/internal/log"
 	"ai-tutor-backend/internal/models"
 	"ai-tutor-backend/internal/usecase"
+	"context"
 	"fmt"
 	"strconv"
 
@@ -18,6 +19,11 @@ type SessionRoomHandler struct {
 	logger log.Logger
 }
 
+func (h *SessionRoomHandler) initiateLogger(c context.Context) (log.Logger){
+	return h.logger.FromContext(c)
+}
+
+
 func NewSessionRoomHandler(sessionRoomUseCase *usecase.SessionRoomUseCase, log log.Logger) *SessionRoomHandler{
 	return &SessionRoomHandler{
 		sessionRoomUseCase: sessionRoomUseCase,
@@ -27,6 +33,8 @@ func NewSessionRoomHandler(sessionRoomUseCase *usecase.SessionRoomUseCase, log l
 
 
 func (h *SessionRoomHandler) FindAllTopics(c *gin.Context ){
+	logger := h.initiateLogger(c.Request.Context())
+
 	roomType := c.Query("roomType")
 
 	userId := c.GetString("userId")
@@ -34,7 +42,7 @@ func (h *SessionRoomHandler) FindAllTopics(c *gin.Context ){
 	rooms, err := h.sessionRoomUseCase.FindAllRooms(c.Request.Context(), userId, roomType)
 
 	if err != nil {
-		h.logger.Error("session room handler find all topics error", zap.Error(err))
+		logger.Error("session room handler find all topics error", zap.Error(err))
 		writeError(c, err)
 		return
 	}
@@ -50,10 +58,12 @@ func (h *SessionRoomHandler) FindAllTopics(c *gin.Context ){
 }
 
 func (h *SessionRoomHandler) CreateSessionRoom(c *gin.Context){
+	logger := h.initiateLogger(c.Request.Context())
+
 	var room dto.CreateSessionRoomRequest
 
 	if err := c.Bind(&room); err != nil {
-		h.logger.Error("session room handler create session room error", zap.Error(err))
+		logger.Error("session room handler create session room error", zap.Error(err))
 		writeError(c, apperr.BadRequest("400", "check the fields", err))
 		return 
 	}
@@ -61,7 +71,7 @@ func (h *SessionRoomHandler) CreateSessionRoom(c *gin.Context){
 	userId, exist := c.Get("userId")
 
 	if !exist {
-		h.logger.Error("session room handler create session room error", zap.Error(fmt.Errorf("user id is not found, after passing auth middleware")))
+		logger.Error("session room handler create session room error", zap.Error(fmt.Errorf("user id is not found, after passing auth middleware")))
 		writeError(c, apperr.Unauthorized("401", "unauthorized", fmt.Errorf("user id is not found, after passing auth middleware")))
 		return 
 	}
@@ -69,7 +79,7 @@ func (h *SessionRoomHandler) CreateSessionRoom(c *gin.Context){
 	createdRoom, err := h.sessionRoomUseCase.CreateSessionRoom(c.Request.Context(),  userId.(string), room.RoomType, room.Icon, room.Topic)
 
 	if err != nil {
-		h.logger.Error("session room handler create session room error", zap.Error(err))
+		logger.Error("session room handler create session room error", zap.Error(err))
 		writeError(c, err)
 		return 
 	}
@@ -79,12 +89,14 @@ func (h *SessionRoomHandler) CreateSessionRoom(c *gin.Context){
 }
 
 func (h *SessionRoomHandler) DeleteSessionRoom(c *gin.Context){
+	logger := h.initiateLogger(c.Request.Context())
+
 	id := c.Param("id")
 
 	err := h.sessionRoomUseCase.DeleteById(c.Request.Context(), id)
 
 	if err != nil {
-		h.logger.Error("session room handler delete session room error", zap.Error(err))
+		logger.Error("session room handler delete session room error", zap.Error(err))
 		writeError(c, err)
 		return 
 	}
@@ -95,13 +107,15 @@ func (h *SessionRoomHandler) DeleteSessionRoom(c *gin.Context){
 }
 
 func (h *SessionRoomHandler) DeleteAllMessages(c *gin.Context){
+	logger := h.initiateLogger(c.Request.Context())
+
 	id := c.Param("id")
 	ignoreFirstMessage := c.Query("ignoreFirstMessage")
 
 	parsedBool, err := strconv.ParseBool(ignoreFirstMessage)
 
 	if err != nil {
-		h.logger.Error("session room handler delete all messages error", zap.Error(err))
+		logger.Error("session room handler delete all messages error", zap.Error(err))
 		writeError(c, err)
 		return 
 	}
@@ -109,7 +123,7 @@ func (h *SessionRoomHandler) DeleteAllMessages(c *gin.Context){
 	err = h.sessionRoomUseCase.DeleteAllMessages(c.Request.Context(), id, parsedBool)
 
 	if err != nil {
-		h.logger.Error("session room handler delete all messages error", zap.Error(err))
+		logger.Error("session room handler delete all messages error", zap.Error(err))
 		writeError(c, err)
 		return 
 	}

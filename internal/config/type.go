@@ -13,6 +13,7 @@ type ConfigApp struct {
 	GoogleAuth GoogleAuthConfig `mapstructure:"google-auth"`
 	OpenAi     OpenAiConfig     `mapstructure:"openai"`
 	AssemblyAi AssemblyAiConfig `mapstructure:"assemblyai"`
+	LogLevel   string 			`mapstructure:"log_level"`
 }
 
 type AiCulturalContext struct {

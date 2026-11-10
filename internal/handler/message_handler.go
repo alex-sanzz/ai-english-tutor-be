@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -39,6 +38,10 @@ func NewMessageHandler(sseBroker *sse.SseBroker, aiChatUseCase *usecase.AiChatUs
 		log:                logger,
 		aiCfg:              aiCfg,
 	}
+}
+
+func (h *MessageHandler) initiateLogger(c context.Context) (log.Logger){
+	return h.log.FromContext(c)
 }
 
 func (h *MessageHandler) FindRecentMessages(c *gin.Context) {
@@ -229,13 +232,13 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 			}
 
 			// This is used for debugging purposes
-			timestamp := time.Now().Format("20060102_150405")
-			filename := fmt.Sprintf("audio_%s.webm", timestamp)
-			if err := os.WriteFile(filename, audioBytes, 0644); err != nil {
-				h.log.Error("failed to save audio file", zap.Error(err), zap.String("filename", filename))
-			} else {
-				h.log.Info("audio file saved", zap.String("filename", filename), zap.Int("size", len(audioBytes)))
-			}
+			// timestamp := time.Now().Format("20060102_150405")
+			// filename := fmt.Sprintf("audio_%s.webm", timestamp)
+			// if err := os.WriteFile(filename, audioBytes, 0644); err != nil {
+			// 	h.log.Error("failed to save audio file", zap.Error(err), zap.String("filename", filename))
+			// } else {
+			// 	h.log.Info("audio file saved", zap.String("filename", filename), zap.Int("size", len(audioBytes)))
+			// }
 
 			uploadedFileUrl, err := h.transcribeUseCase.UploadAudioFile(c.Request.Context(), audioBytes)
 
@@ -298,7 +301,7 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 
 			replacer := strings.NewReplacer("{{topic}}", room.Topic, "{{main_objective}}", mainObjective, "{{alternative_version}}", strconv.FormatBool(msg.AlternateVersion != "0"), "{{alternative_count}}", msg.AlternateVersion, "{{cultural_context}}", msg.CulturalContext, "{{paraphrase_version}}", msg.ParaphraseVersion, "{{follow_up_question}}", "true")
 			
-			h.log.Info("current prompt", zap.String("prompt", replacer.Replace(prompt)))
+
 
 			err = h.askAi(c.Request.Context(), rw, flusher, sessionId, transcribedText, replacer.Replace(prompt), true)
 
@@ -403,6 +406,9 @@ func (h *MessageHandler) sendSseEvent(w http.ResponseWriter, flusher http.Flushe
 }
 
 func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
+
+	logger := h.initiateLogger(c.Request.Context())
+
 	id := c.Param("id")
 
 	alternateVersion := c.DefaultQuery("alternative-version", "0")
@@ -410,8 +416,10 @@ func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
 	paraphraseVersion := c.DefaultQuery("paraphrase-version", "false")
 	aiType := c.DefaultQuery("type", "basic")
 
+	logger.Debug("http request inspect", zap.String("inside", fmt.Sprintf("alternate-version=%s, cultural-context=%s, paraphrase-version=%s, ai-type=%s", alternateVersion, culturalContext, paraphraseVersion, aiType)))
+
 	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
-		h.log.Error("parse multipart form error", zap.Error(err))
+		logger.Error("parse multipart form error", zap.Error(err))
 	} else if mf := c.Request.MultipartForm; mf != nil {
 		// collect keys
 		keys := make([]string, 0, len(mf.Value)+len(mf.File))
@@ -422,18 +430,18 @@ func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
 			keys = append(keys, k)
 		}
 
-		h.log.Debug("multipart keys", zap.Any("keys", keys))
-		h.log.Debug("multipart values", zap.Any("values", mf.Value))
-		h.log.Debug("multipart files", zap.Any("files", mf.File))
+		logger.Debug("multipart keys", zap.Any("keys", keys))
+		logger.Debug("multipart values", zap.Any("values", mf.Value))
+		logger.Debug("multipart files", zap.Any("files", mf.File))
 	} else {
-		h.log.Debug("no multipart form present")
+		logger.Debug("no multipart form present")
 	}
 
 	// From form-data, get value from a field named "file"
 	fileHeader, err := c.FormFile("file")
 
 	if err != nil {
-		h.log.Error("send sse audio message handler error", zap.Error(err))
+		logger.Error("send sse audio message handler error", zap.Error(err))
 		writeError(c, err)
 		return
 	}
@@ -442,7 +450,7 @@ func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
 	f, err := fileHeader.Open()
 
 	if err != nil {
-		h.log.Error("send sse audio message handler error", zap.Error(err))
+		logger.Error("send sse audio message handler error", zap.Error(err))
 		writeError(c, err)
 		return
 	}
@@ -453,7 +461,7 @@ func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
 	b, err := io.ReadAll(f)
 
 	if err != nil {
-		h.log.Error("send sse audio message handler error", zap.Error(err))
+		logger.Error("send sse audio message handler error", zap.Error(err))
 		writeError(c, err)
 		return
 	}
@@ -470,7 +478,7 @@ func (h *MessageHandler) SendAudioMessage(c *gin.Context) {
 	}
 
 	if err := h.sseBroker.SendEvent(id, chat); err != nil {
-		h.log.Error("send sse audio handler error", zap.Error(err))
+		logger.Error("send sse audio handler error", zap.Error(err))
 		writeError(c, err)
 		return
 	}

@@ -21,6 +21,7 @@ func SetupRoute(c *gin.Engine, messageHandler *handler.MessageHandler, authHandl
 
 	protectedGroup := apiGroup.Group("")
 	
+	protectedGroup.Use(middleware.SetRequestIdMiddleware(logger))
 	protectedGroup.Use(middleware.JwtMiddleware(jwtClient, logger))
 
 	protectedGroup.GET("/rooms", sessionRoomHandler.FindAllTopics)

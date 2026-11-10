@@ -4,6 +4,7 @@ import (
 	"ai-tutor-backend/internal/apperr"
 	"ai-tutor-backend/internal/log"
 	"ai-tutor-backend/internal/usecase"
+	"context"
 	"fmt"
 	"io"
 
@@ -23,17 +24,24 @@ func NewConversationQuestionHandler(usecase usecase.ConversationQuestionUseCase,
 	}
 }
 
+func (h *ConversationQuestionHandler) initiateLogger(c context.Context) (log.Logger){
+	return h.log.FromContext(c)
+}
+
 func (h *ConversationQuestionHandler) FindById(c *gin.Context){
 	id := c.Param("id")
 
+	logger := h.initiateLogger(c.Request.Context())
+
 	if id == "" {
+		logger.Error("conversation question handler find by id error", zap.Error(fmt.Errorf("id is required")))
 		writeError(c, apperr.BadRequest("400", "id is required", fmt.Errorf("id is required")))
 	}
 
 	conversation, err := h.usecase.FindById(c.Request.Context(), id)
 
 	if err != nil {
-		h.log.Error("conversation question handler error", zap.Error(err))
+		logger.Error("conversation question handler find by id error", zap.Error(err))
 		writeError(c, err)
 	}
 
@@ -44,14 +52,17 @@ func (h *ConversationQuestionHandler) FindById(c *gin.Context){
 func (h *ConversationQuestionHandler) FindAll(c *gin.Context){
 	sessionRoomId := c.Query("sessionRoomId")
 
+	logger := h.initiateLogger(c.Request.Context())
+
 	if sessionRoomId == "" {
+		logger.Error("conversation question handler find all error", zap.Error(fmt.Errorf("session room id is required")))
 		writeError(c, apperr.BadRequest("400", "session room id is required", fmt.Errorf("session room id is required")))
 	}
 
 	conversations, err := h.usecase.FindAll(c.Request.Context(), sessionRoomId)
 
 	if err != nil {
-		h.log.Error("conversation question handler error", zap.Error(err))
+		logger.Error("conversation question handler find all error", zap.Error(err))
 		writeError(c, err)
 	}
 
@@ -62,14 +73,17 @@ func (h *ConversationQuestionHandler) FindAll(c *gin.Context){
 func (h *ConversationQuestionHandler) FindAllAnsweredQuestion(c *gin.Context){
 	sessionRoomId := c.Query("sessionRoomId")
 
+	logger := h.initiateLogger(c.Request.Context())
+
 	if sessionRoomId == "" {
+		logger.Error("conversation question handler find all answered question error", zap.Error(fmt.Errorf("session room id is required")))
 		writeError(c, apperr.BadRequest("400", "session room id is required", fmt.Errorf("session room id is required")))
 	}
 
 	conversations, err := h.usecase.FindAllAnsweredQuestion(c.Request.Context(), sessionRoomId)
 
 	if err != nil {
-		h.log.Error("conversation question handler error", zap.Error(err))
+		logger.Error("conversation question handler ind all answered questio error", zap.Error(err))
 		writeError(c, err)
 	}
 
@@ -80,13 +94,17 @@ func (h *ConversationQuestionHandler) FindAllAnsweredQuestion(c *gin.Context){
 func (h *ConversationQuestionHandler) GenerateQuestion(c *gin.Context){
 	sessionRoomId := c.Query("sessionRoomId")
 
+	logger := h.initiateLogger(c.Request.Context())
+
 	if sessionRoomId == "" {
+		logger.Error("conversation question handler find all answered question error", zap.Error(fmt.Errorf("session room id is required")))
 		writeError(c, apperr.BadRequest("400", "session room id is required", fmt.Errorf("session room id is required")))
 	}
 
 	err := h.usecase.GenerateQuestion(c.Request.Context(), sessionRoomId)
 
 	if err != nil {
+		logger.Error("conversation question handler generate question error", zap.Error(err))
 		writeError(c, err)
 	}
 
@@ -97,6 +115,8 @@ func (h *ConversationQuestionHandler) GenerateQuestion(c *gin.Context){
 func (h *ConversationQuestionHandler) AnswerQuestion(c *gin.Context){
 	id := c.Query("id")
 
+	logger := h.initiateLogger(c.Request.Context())
+
 	if id == "" {
 		writeError(c, apperr.BadRequest("400", "ID is required", fmt.Errorf("id is required")))
 	}
@@ -106,7 +126,7 @@ func (h *ConversationQuestionHandler) AnswerQuestion(c *gin.Context){
 	paraphraseVersion := c.DefaultQuery("paraphrase-version", "false")
 
 	if err := c.Request.ParseMultipartForm(32 << 20); err != nil {
-		h.log.Error("parse multipart form error", zap.Error(err))
+		logger.Error("parse multipart form error", zap.Error(err))
 	} else if mf := c.Request.MultipartForm; mf != nil {
 		// collect keys
 		keys := make([]string, 0, len(mf.Value)+len(mf.File))
@@ -128,7 +148,7 @@ func (h *ConversationQuestionHandler) AnswerQuestion(c *gin.Context){
 	fileHeader, err := c.FormFile("file")
 
 	if err != nil {
-		h.log.Error("send sse audio message handler error", zap.Error(err))
+		logger.Error("send sse audio message handler answer question error", zap.Error(err))
 		writeError(c, err)
 		return
 	}
@@ -137,7 +157,7 @@ func (h *ConversationQuestionHandler) AnswerQuestion(c *gin.Context){
 	f, err := fileHeader.Open()
 
 	if err != nil {
-		h.log.Error("send sse audio message handler error", zap.Error(err))
+		logger.Error("send sse audio message handler answer question error", zap.Error(err))
 		writeError(c, err)
 		return
 	}
@@ -148,7 +168,7 @@ func (h *ConversationQuestionHandler) AnswerQuestion(c *gin.Context){
 	b, err := io.ReadAll(f)
 
 	if err != nil {
-		h.log.Error("send sse audio message handler error", zap.Error(err))
+		logger.Error("send sse audio message handler answer question error", zap.Error(err))
 		writeError(c, err)
 		return
 	}
@@ -156,7 +176,7 @@ func (h *ConversationQuestionHandler) AnswerQuestion(c *gin.Context){
 	err = h.usecase.AnswerQuestion(c.Request.Context(), id, alternateVersion, culturalContext, paraphraseVersion, b)
 
 	if err != nil {
-		h.log.Error("send sse audio message handler error", zap.Error(err))
+		logger.Error("send sse audio message handler answer question error", zap.Error(err))
 		writeError(c, err)
 	}
 

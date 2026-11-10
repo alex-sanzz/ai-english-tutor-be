@@ -86,6 +86,7 @@ jobs:
 
             cat > .env <<EOF 
             OPENAI_API_KEY=${{ secrets.OPEN_AI_API_KEY }}
+            LOGGER_LEVEL=${{ vars.LOGGER_LEVEL }}
             EOF
       - name: Create service
         uses: appleboy/ssh-action@v1.0.3

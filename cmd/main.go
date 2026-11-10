@@ -1,6 +1,7 @@
 package main
 
 import (
+	defaultLog "log"
 	"ai-tutor-backend/internal/config"
 	"ai-tutor-backend/internal/handler"
 	"ai-tutor-backend/internal/infrastructure/assemblyai"
@@ -41,18 +42,18 @@ import (
 
 func main() {
 
-	logger, _ := log.NewZapLogger("debug", false)
-
-	defer logger.Sync()
-
 	cfg, err := config.InitConfig()
 
 	if err != nil {
-
-		logger.Fatal("failed init config", zap.Error(err))
+		defaultLog.Fatal(fmt.Errorf("failed to initialize config: %w", err))
 	}
+
+	logger, _ := log.NewZapLogger(cfg.LogLevel, false)
+
+	defer logger.Sync()
+
 	logger.Info("config loaded successfully")
-	logger.Info(fmt.Sprintf("database name: %s", cfg.Database.DatabaseName))
+	logger.Info(fmt.Sprintf("the log level is %s", cfg.LogLevel))
 	dbDsn := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", cfg.Database.Username, cfg.Database.Password, cfg.Database.Host, fmt.Sprint(cfg.Database.Port), cfg.Database.DatabaseName)
 
 	if err := postgres.RunMigrations(dbDsn); err != nil {

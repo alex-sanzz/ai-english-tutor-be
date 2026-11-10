@@ -1,6 +1,9 @@
 package config
 
-import "github.com/spf13/viper"
+import (
+
+	"github.com/spf13/viper"
+)
 
 func InitConfig() (*ConfigApp, error) {
 	vpr := viper.New()
@@ -17,6 +20,7 @@ func InitConfig() (*ConfigApp, error) {
 	// Automatically reads from environment variables
 	vpr.AutomaticEnv()
 
+
 	if err := vpr.ReadInConfig(); err != nil {
 		return nil, err
 	}
@@ -25,7 +29,9 @@ func InitConfig() (*ConfigApp, error) {
 		return nil, err
 	}
 
-	
+	if vpr.GetString("log_level") != "" {
+		cfg.LogLevel = vpr.GetString("log_level")
+	}
 
 	return &cfg, nil
 

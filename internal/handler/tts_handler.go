@@ -5,6 +5,7 @@ import (
 	"ai-tutor-backend/internal/dto"
 	"ai-tutor-backend/internal/log"
 	"ai-tutor-backend/internal/usecase"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +19,11 @@ type TtsHandler struct {
 	logger log.Logger
 }
 
+func (t TtsHandler) initiateLogger(c context.Context) (log.Logger){
+	return t.logger.FromContext(c)
+}
+
+
 func NewTtsHandler(ttsUsecase usecase.TTSUsecase, logger log.Logger) *TtsHandler{
 	return &TtsHandler{
 		ttsUsecase: ttsUsecase,
@@ -26,10 +32,12 @@ func NewTtsHandler(ttsUsecase usecase.TTSUsecase, logger log.Logger) *TtsHandler
 }
 
 func (t TtsHandler) Generate(c *gin.Context){
+	logger := t.initiateLogger(c.Request.Context())
+
 	var reqBody dto.TTSRequestDto
 
 	if err := c.BindJSON(&reqBody); err != nil {
-		t.logger.Error("tts handler parsing request body to struct error", zap.Error(err))
+		logger.Error("tts handler parsing request body to struct error", zap.Error(err))
 		writeError(c, apperr.BadRequest("400", "invalid request body format", fmt.Errorf("tts handler parsing request body to struct error: %w", err)))
 		return
 	}
@@ -37,7 +45,7 @@ func (t TtsHandler) Generate(c *gin.Context){
 	audioSource, err := t.ttsUsecase.Generate(c.Request.Context(), reqBody.Text)
 
 	if err != nil {
-		t.logger.Error("tts handler generate method error", zap.Error(err))
+		logger.Error("tts handler generate method error", zap.Error(err))
 		writeError(c, apperr.Internal(err))
 		return
 	}
@@ -55,7 +63,7 @@ func (t TtsHandler) Generate(c *gin.Context){
 
 		if bytes > 0 {
 			if _, err := c.Writer.Write(buffer[:bytes]); err != nil {
-				t.logger.Error("tts handler generate method error", zap.Error(err))
+			    logger.Error("tts handler generate method error", zap.Error(err))
 				writeError(c, readErr)
 				return
 			}
@@ -69,7 +77,7 @@ func (t TtsHandler) Generate(c *gin.Context){
 
 
 		if readErr != nil {
-			t.logger.Error("tts handler generate method error", zap.Error(err))
+			logger.Error("tts handler generate method error", zap.Error(err))
 			writeError(c, readErr)
 			return
 		}

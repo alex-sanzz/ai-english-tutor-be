@@ -20,6 +20,8 @@ func NewPaymentHandler(paymentUseCase usecase.PaymentUseCase) *PaymentHandler{
 }
 
 func (h *PaymentHandler) AcknowledgeSubcription(c *gin.Context){
+	
+
 	var p dto.AcknowledgeSubcriptionRequestDto
 
 	if err := c.BindJSON(&p); err != nil {

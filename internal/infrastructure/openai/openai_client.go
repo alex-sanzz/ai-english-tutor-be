@@ -89,12 +89,6 @@ func (c *OpenAiClient) AskQuestion(ctx context.Context, systemPrompt, userRespon
 		
 	}
 
-	
-
-	
-	
-	
-
 	resp, err := c.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
         Model: c.config.OpenAi.Model,
         Messages: openAiMessages,
@@ -114,7 +108,6 @@ func (c *OpenAiClient) AskQuestion(ctx context.Context, systemPrompt, userRespon
 }
 
 func (c *OpenAiClient) ChatStream(ctx context.Context, systemPrompt string, message []*models.Chat, onChunk func(string) error, onFinish func(string) error) error{
-	
 	
 	openAiMessages := make([]openai.ChatCompletionMessageParamUnion, 0, len(message))
 
