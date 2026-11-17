@@ -1,0 +1,1 @@
+ALTER TABLE session_rooms ADD detailed_context VARCHAR(255) DEFAULT '';

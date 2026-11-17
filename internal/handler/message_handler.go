@@ -40,7 +40,7 @@ func NewMessageHandler(sseBroker *sse.SseBroker, aiChatUseCase *usecase.AiChatUs
 	}
 }
 
-func (h *MessageHandler) initiateLogger(c context.Context) (log.Logger){
+func (h *MessageHandler) initiateLogger(c context.Context) log.Logger {
 	return h.log.FromContext(c)
 }
 
@@ -78,7 +78,7 @@ func (h *MessageHandler) FindRecentMessages(c *gin.Context) {
 }
 
 func (h *MessageHandler) RegisterSse(c *gin.Context) {
-
+	logger := h.initiateLogger(c.Request.Context())
 	rw := c.Writer
 	req := c.Request
 
@@ -91,7 +91,7 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 
 	if !ok {
 
-		h.log.Error("register sse handler error", zap.Error(fmt.Errorf("cannot flush http")))
+		logger.Error("register sse handler error", zap.Error(fmt.Errorf("cannot flush http")))
 		return
 
 	}
@@ -123,17 +123,17 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 
 	defer func() {
 		h.sseBroker.UnregisterClient(sessionId)
-		h.log.Info("sse client unregistered", zap.String("sessionId", sessionId))
+		logger.Info("sse client unregistered", zap.String("sessionId", sessionId))
 	}()
 
 	err := h.sseBroker.RegisterClient(sessionId, messageChan)
 
 	if err != nil {
-		h.log.Error("register sse error: can't register sse client", zap.Error(err))
+		logger.Error("register sse error: can't register sse client", zap.Error(err))
 		return
 	}
 
-	h.log.Info("client is registered successfully")
+	logger.Info("client is registered successfully")
 
 	// TODO: send initial event here
 
@@ -144,11 +144,11 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 	})
 
 	if err != nil {
-		h.log.Error("register sse error: can't send sse event", zap.Error(err))
+		logger.Error("register sse error: can't send sse event", zap.Error(err))
 		return
 	}
 
-	h.log.Info("session event is sent successfully")
+	logger.Info("session event is sent successfully")
 
 	// Heartbeat ticker to keep connection alive
 	heartbeatTicker := time.NewTicker(30 * time.Second)
@@ -157,7 +157,7 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 	chats, err := h.aiChatUseCase.FindRecentMessages(c.Request.Context(), sessionId, 1)
 
 	if err != nil {
-		h.log.Error("ai chat usecase find recent message error", zap.Error(err))
+		logger.Error("ai chat usecase find recent message error", zap.Error(err))
 		h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 			MessageId: time.Now().String(),
 			Message:   "there is something wrong in the system",
@@ -170,7 +170,7 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 	if len(chats) == 0 {
 
 		if err != nil {
-			h.log.Error("session room usecase find by id error", zap.Error(err))
+			logger.Error("session room usecase find by id error", zap.Error(err))
 			h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 				MessageId: time.Now().String(),
 				Message:   "there is something wrong in the system",
@@ -195,7 +195,7 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 		err = h.askAi(c.Request.Context(), rw, flusher, sessionId, initialResponse, systemPrompt, false)
 
 		if err != nil {
-			h.log.Error("message handler ask ai method error", zap.Error(err))
+			logger.Error("message handler ask ai method error", zap.Error(err))
 			h.sendErrorSse(rw, flusher, "there is something wrong", err)
 		}
 	}
@@ -212,7 +212,7 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 			audioBytes, err := base64.StdEncoding.DecodeString(msg.Message)
 
 			if err != nil {
-				h.log.Error("register sse handler error", zap.Error(err))
+				logger.Error("register sse handler error", zap.Error(err))
 				h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 					MessageId: time.Now().String(),
 					Message:   "failed to decode voice",
@@ -222,7 +222,7 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 			}
 
 			if len(audioBytes) == 0 {
-				h.log.Warn("received empty audio data")
+				logger.Warn("received empty audio data")
 				h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 					MessageId: time.Now().String(),
 					Message:   "audio data is empty",
@@ -243,7 +243,7 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 			uploadedFileUrl, err := h.transcribeUseCase.UploadAudioFile(c.Request.Context(), audioBytes)
 
 			if err != nil {
-				h.log.Error("register sse handler error on uploading audio file", zap.Error(err))
+				logger.Error("register sse handler error on uploading audio file", zap.Error(err))
 				h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 					MessageId: time.Now().String(),
 					Message:   "failed to transcribe voice",
@@ -255,7 +255,7 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 			transcribedText, err := h.transcribeUseCase.TranscribeAudio(c.Request.Context(), uploadedFileUrl)
 
 			if err != nil {
-				h.log.Error("register sse handler error on transcribing audio file", zap.Error(err))
+				logger.Error("register sse handler error on transcribing audio file", zap.Error(err))
 				h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 					MessageId: time.Now().String(),
 					Message:   "failed to transcribe voice",
@@ -265,7 +265,7 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 			}
 
 			if transcribedText == "" {
-				h.log.Error("register sse handler error on transcribing audio file: transcribed text is empty")
+				logger.Error("register sse handler error on transcribing audio file: transcribed text is empty")
 				h.sendSseEvent(rw, flusher, "error", dto.SseEvent{
 					MessageId: time.Now().String(),
 					Message:   "transcribed text is empty",
@@ -274,14 +274,14 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 				return
 			}
 
-			h.log.Debug("transcribed text :", zap.String("text", transcribedText))
+			logger.Debug("transcribed text :", zap.String("text", transcribedText))
 
 			if err := h.sendSseEvent(rw, flusher, "data", dto.SseEvent{
 				MessageId: time.Now().String(),
 				Message:   transcribedText,
 				Role:      "user",
 			}); err != nil {
-				h.log.Error("register sse handler error", zap.Error(err))
+				logger.Error("register sse handler error", zap.Error(err))
 				return
 			}
 
@@ -300,20 +300,20 @@ func (h *MessageHandler) RegisterSse(c *gin.Context) {
 			prompt = strings.ReplaceAll(prompt, "{{main_rule}}", mainRule)
 
 			replacer := strings.NewReplacer("{{topic}}", room.Topic, "{{main_objective}}", mainObjective, "{{alternative_version}}", strconv.FormatBool(msg.AlternateVersion != "0"), "{{alternative_count}}", msg.AlternateVersion, "{{cultural_context}}", msg.CulturalContext, "{{paraphrase_version}}", msg.ParaphraseVersion, "{{follow_up_question}}", "true")
-			
 
+			logger.Debug("prompt template", zap.String("content", replacer.Replace(prompt)))
 
 			err = h.askAi(c.Request.Context(), rw, flusher, sessionId, transcribedText, replacer.Replace(prompt), true)
 
 			if err != nil {
-				h.log.Error("register sse handler error", zap.Error(err))
+				logger.Error("register sse handler error", zap.Error(err))
 				return
 			}
 		case <-heartbeatTicker.C:
 
 		// if connection is closed
 		case <-req.Context().Done():
-			h.log.Info("client connection closed")
+			logger.Info("client connection closed")
 			return
 		}
 	}

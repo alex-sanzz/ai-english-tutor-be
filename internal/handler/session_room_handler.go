@@ -39,6 +39,8 @@ func (h *SessionRoomHandler) FindAllTopics(c *gin.Context ){
 
 	userId := c.GetString("userId")
 
+	logger.Debug("find all topic request", zap.String("room type", roomType), zap.String("user id", userId))
+
 	rooms, err := h.sessionRoomUseCase.FindAllRooms(c.Request.Context(), userId, roomType)
 
 	if err != nil {
@@ -76,7 +78,7 @@ func (h *SessionRoomHandler) CreateSessionRoom(c *gin.Context){
 		return 
 	}
 
-	createdRoom, err := h.sessionRoomUseCase.CreateSessionRoom(c.Request.Context(),  userId.(string), room.RoomType, room.Icon, room.Topic)
+	createdRoom, err := h.sessionRoomUseCase.CreateSessionRoom(c.Request.Context(), userId.(string), room.RoomType, room.Icon, room.Topic, room.DetailedContext)
 
 	if err != nil {
 		logger.Error("session room handler create session room error", zap.Error(err))

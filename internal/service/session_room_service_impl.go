@@ -20,8 +20,8 @@ func NewSessionRoomService(sessionRoomRepo repository.SessionRoomRepository, cha
 	}
 }
 
-func (s *sessionRoomService) CreateSessionRoom(context context.Context, userId, roomType, icon, topic string) (string, error){
-	sessionRoomId, err := s.sessionRoomRepo.CreateSessionRoom(context, userId, roomType, icon, topic)
+func (s *sessionRoomService) CreateSessionRoom(context context.Context, userId, roomType, icon, topic, detailedContext string) (string, error){
+	sessionRoomId, err := s.sessionRoomRepo.CreateSessionRoom(context, userId, roomType, icon, topic, detailedContext)
 	if err != nil {
 		return "", apperr.Internal(fmt.Errorf("session room service create session room error: %w", err))
 	}

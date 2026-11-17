@@ -13,31 +13,31 @@ import (
 )
 
 type SessionRoomRepository struct {
-	db *pgxpool.Pool
+	db     *pgxpool.Pool
 	logger log.Logger
 }
 
 func NewSessionRoomRepository(db *pgxpool.Pool, logger log.Logger) *SessionRoomRepository {
 	return &SessionRoomRepository{
-		db: db,
+		db:     db,
 		logger: logger,
 	}
 }
 
-func (s *SessionRoomRepository) CreateSessionRoom(ctx context.Context, userId, roomType, icon, topic string) (string, error) {
+func (s *SessionRoomRepository) CreateSessionRoom(ctx context.Context, userId, roomType, icon, topic, detailedContext string) (string, error) {
 	var id string
 	// On conflict will only be triggered when primary key, unique constraint, unique index is violated
-	err := s.db.QueryRow(ctx, "INSERT INTO session_rooms (user_id, room_type_id, icon, topic) VALUES ($1, $2, $3, $4) RETURNING id", userId, roomType, icon, topic).Scan(&id)
+	err := s.db.QueryRow(ctx, "INSERT INTO session_rooms (user_id, room_type_id, icon, topic, detailed_context) VALUES ($1, $2, $3, $4, $5) RETURNING id", userId, roomType, icon, topic, detailedContext).Scan(&id)
 
 	if err != nil {
-		
+
 		return "", fmt.Errorf("postgres CreateSessionRoom error: %w", err)
 	}
 
 	return id, nil
 }
 
-func (s *SessionRoomRepository) FindById(ctx context.Context, id string) (*models.SessionRoom, error){
+func (s *SessionRoomRepository) FindById(ctx context.Context, id string) (*models.SessionRoom, error) {
 	query := "SELECT id, room_type_id, icon, topic, user_id, created_at FROM session_rooms WHERE id = $1"
 	row := s.db.QueryRow(ctx, query, id)
 
@@ -47,17 +47,17 @@ func (s *SessionRoomRepository) FindById(ctx context.Context, id string) (*model
 
 	if err != nil {
 
-		if errors.Is(err, pgx.ErrNoRows){
+		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.NotFound("400", "session room not found", err)
 		}
 
 		return nil, apperr.Internal(fmt.Errorf("session room repository find by id error: %w", err))
 	}
 
-	return &room, nil 
+	return &room, nil
 }
 
-func (s *SessionRoomRepository) FindAllByUserIdAndRoomType(ctx context.Context, userId, roomType string) ([]*models.SessionRoom, error){
+func (s *SessionRoomRepository) FindAllByUserIdAndRoomType(ctx context.Context, userId, roomType string) ([]*models.SessionRoom, error) {
 	query := "SELECT id, room_type_id, topic, icon, user_id, created_at FROM session_rooms WHERE user_id = $1 AND room_type_id = $2"
 
 	rows, err := s.db.Query(ctx, query, userId, roomType)
@@ -81,7 +81,7 @@ func (s *SessionRoomRepository) FindAllByUserIdAndRoomType(ctx context.Context, 
 
 	}
 
-	return rooms, nil 
+	return rooms, nil
 
 }
 

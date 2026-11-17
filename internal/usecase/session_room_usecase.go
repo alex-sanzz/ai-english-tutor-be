@@ -16,8 +16,8 @@ func NewSessionRoomUseCase(sessionRoomService service.SessionRoomService) *Sessi
 	}
 }
 
-func (u *SessionRoomUseCase) CreateSessionRoom(ctx context.Context,userId string, roomType string, icon string, topic string) (string, error) {
-	return u.sessionRoomService.CreateSessionRoom(ctx, userId, roomType, icon, topic)
+func (u *SessionRoomUseCase) CreateSessionRoom(ctx context.Context,userId string, roomType string, icon string, topic string, detailedContext string) (string, error) {
+	return u.sessionRoomService.CreateSessionRoom(ctx, userId, roomType, icon, topic, detailedContext)
 }
 
 func (u *SessionRoomUseCase) FindAllRooms(ctx context.Context,userId string, roomType string) ([]*models.SessionRoom, error){
