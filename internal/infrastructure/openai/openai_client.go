@@ -153,7 +153,7 @@ func (c *OpenAiClient) ChatStream(ctx context.Context, systemPrompt string, mess
 		// Union means the chat can have different kind
 		// For example: it can be from human, ai, etc
 		Messages: openAiMessages,
-		MaxCompletionTokens: openai.Int(c.config.OpenAi.MaxTokens),
+
 	})
 
 	if stream == nil {
